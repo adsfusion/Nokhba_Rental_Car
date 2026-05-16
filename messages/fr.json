@@ -1,0 +1,34 @@
+{
+  "nav": {
+    "dashboard": "Tableau de bord",
+    "fleet": "Flotte",
+    "contracts": "Contrats",
+    "clients": "Clients",
+    "settings": "Paramètres"
+  },
+  "common": {
+    "save": "Enregistrer",
+    "cancel": "Annuler",
+    "add": "Ajouter",
+    "edit": "Modifier",
+    "delete": "Supprimer",
+    "loading": "Chargement…",
+    "back": "Retour",
+    "close": "Fermer"
+  },
+  "fleet": {
+    "title": "Flotte de véhicules",
+    "addVehicle": "Ajouter un véhicule",
+    "noVehicles": "Aucun véhicule trouvé"
+  },
+  "contracts": {
+    "title": "Contrats & Accords",
+    "newContract": "Nouveau contrat",
+    "noContracts": "Aucun contrat trouvé"
+  },
+  "clients": {
+    "title": "Clients",
+    "addClient": "Ajouter un client",
+    "noClients": "Aucun client trouvé"
+  }
+}

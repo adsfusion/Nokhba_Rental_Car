@@ -1,0 +1,17 @@
+{
+  "/(auth)/login/page": "/login",
+  "/(client)/my-rentals/page": "/my-rentals",
+  "/(saas-admin)/agencies/page": "/agencies",
+  "/(saas-admin)/overview/page": "/overview",
+  "/(saas-admin)/packages/page": "/packages",
+  "/(tenant)/clients/page": "/clients",
+  "/(tenant)/contracts/new/page": "/contracts/new",
+  "/(tenant)/contracts/page": "/contracts",
+  "/(tenant)/dashboard/page": "/dashboard",
+  "/(tenant)/fleet/page": "/fleet",
+  "/(tenant)/settings/page": "/settings",
+  "/_global-error/page": "/_global-error",
+  "/_not-found/page": "/_not-found",
+  "/page": "/",
+  "/sign/[contractId]/page": "/sign/[contractId]"
+}

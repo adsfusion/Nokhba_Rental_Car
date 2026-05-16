@@ -1,0 +1,17 @@
+{
+  "/(auth)/login/page": "app/(auth)/login/page.js",
+  "/(client)/my-rentals/page": "app/(client)/my-rentals/page.js",
+  "/(saas-admin)/agencies/page": "app/(saas-admin)/agencies/page.js",
+  "/(saas-admin)/overview/page": "app/(saas-admin)/overview/page.js",
+  "/(saas-admin)/packages/page": "app/(saas-admin)/packages/page.js",
+  "/(tenant)/clients/page": "app/(tenant)/clients/page.js",
+  "/(tenant)/contracts/new/page": "app/(tenant)/contracts/new/page.js",
+  "/(tenant)/contracts/page": "app/(tenant)/contracts/page.js",
+  "/(tenant)/dashboard/page": "app/(tenant)/dashboard/page.js",
+  "/(tenant)/fleet/page": "app/(tenant)/fleet/page.js",
+  "/(tenant)/settings/page": "app/(tenant)/settings/page.js",
+  "/_global-error/page": "app/_global-error/page.js",
+  "/_not-found/page": "app/_not-found/page.js",
+  "/page": "app/page.js",
+  "/sign/[contractId]/page": "app/sign/[contractId]/page.js"
+}

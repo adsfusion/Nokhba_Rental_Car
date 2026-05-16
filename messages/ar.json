@@ -1,0 +1,34 @@
+{
+  "nav": {
+    "dashboard": "لوحة التحكم",
+    "fleet": "الأسطول",
+    "contracts": "العقود",
+    "clients": "العملاء",
+    "settings": "الإعدادات"
+  },
+  "common": {
+    "save": "حفظ",
+    "cancel": "إلغاء",
+    "add": "إضافة",
+    "edit": "تعديل",
+    "delete": "حذف",
+    "loading": "جار التحميل…",
+    "back": "رجوع",
+    "close": "إغلاق"
+  },
+  "fleet": {
+    "title": "أسطول المركبات",
+    "addVehicle": "إضافة مركبة",
+    "noVehicles": "لا توجد مركبات"
+  },
+  "contracts": {
+    "title": "العقود والاتفاقيات",
+    "newContract": "عقد جديد",
+    "noContracts": "لا توجد عقود"
+  },
+  "clients": {
+    "title": "العملاء",
+    "addClient": "إضافة عميل",
+    "noClients": "لا يوجد عملاء"
+  }
+}

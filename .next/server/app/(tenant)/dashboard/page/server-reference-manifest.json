@@ -1,0 +1,53 @@
+{
+  "node": {
+    "0016713eac2e7c675e2952e2eb05021a69d243610f": {
+      "workers": {
+        "app/(tenant)/dashboard/page": {
+          "moduleId": 98037,
+          "async": false,
+          "exportedName": "logout",
+          "filename": "src/lib/actions/auth.ts"
+        }
+      },
+      "exportedName": "logout",
+      "filename": "src/lib/actions/auth.ts"
+    },
+    "00620c589211f921a30e45b42f7e6dd3a9e1db9352": {
+      "workers": {
+        "app/(tenant)/dashboard/page": {
+          "moduleId": 98037,
+          "async": false,
+          "exportedName": "getProfile",
+          "filename": "src/lib/actions/auth.ts"
+        }
+      },
+      "exportedName": "getProfile",
+      "filename": "src/lib/actions/auth.ts"
+    },
+    "00fde54cb1786c1fd408b738c2b27fa60ebc481a47": {
+      "workers": {
+        "app/(tenant)/dashboard/page": {
+          "moduleId": 98037,
+          "async": false,
+          "exportedName": "getSession",
+          "filename": "src/lib/actions/auth.ts"
+        }
+      },
+      "exportedName": "getSession",
+      "filename": "src/lib/actions/auth.ts"
+    },
+    "407387a0c68e58f24e4da31de343011b4df0e6fa43": {
+      "workers": {
+        "app/(tenant)/dashboard/page": {
+          "moduleId": 98037,
+          "async": false,
+          "exportedName": "login",
+          "filename": "src/lib/actions/auth.ts"
+        }
+      },
+      "exportedName": "login",
+      "filename": "src/lib/actions/auth.ts"
+    }
+  },
+  "edge": {}
+}

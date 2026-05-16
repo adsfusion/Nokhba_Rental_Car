@@ -1,0 +1,54 @@
+src/components/clients/AddClientModal.tsx(32,25): error TS2345: Argument of type '{ name: string; phone: string; address: string; birth_date: string; birth_place: string; license_number: string; license_date: string; }' is not assignable to parameter of type 'Omit<Client, "id" | "tenant_id" | "created_at">'.
+  Type '{ name: string; phone: string; address: string; birth_date: string; birth_place: string; license_number: string; license_date: string; }' is missing the following properties from type 'Omit<Client, "id" | "tenant_id" | "created_at">': email, full_name, city, id_type, and 10 more.
+src/components/clients/AddClientModal.tsx(96,47): error TS2345: Argument of type '"driver_license_expiry"' is not assignable to parameter of type '"name" | "phone" | "address" | "birth_date" | "birth_place" | "license_number" | "license_date"'.
+src/components/clients/AddClientModal.tsx(97,23): error TS2339: Property 'driver_license_expiry' does not exist on type 'FieldErrors<{ name: string; phone: string; address: string; birth_date: string; birth_place: string; license_number: string; license_date: string; }>'.
+src/components/clients/AddClientModal.tsx(97,96): error TS2339: Property 'driver_license_expiry' does not exist on type 'FieldErrors<{ name: string; phone: string; address: string; birth_date: string; birth_place: string; license_number: string; license_date: string; }>'.
+src/components/clients/AddClientModal.tsx(103,33): error TS2345: Argument of type '"driver_license_number"' is not assignable to parameter of type '"name" | "phone" | "address" | "birth_date" | "birth_place" | "license_number" | "license_date"'.
+src/components/clients/AddClientModal.tsx(104,21): error TS2551: Property 'driver_license_number' does not exist on type 'FieldErrors<{ name: string; phone: string; address: string; birth_date: string; birth_place: string; license_number: string; license_date: string; }>'. Did you mean 'license_number'?
+src/components/clients/AddClientModal.tsx(104,94): error TS2551: Property 'driver_license_number' does not exist on type 'FieldErrors<{ name: string; phone: string; address: string; birth_date: string; birth_place: string; license_number: string; license_date: string; }>'. Did you mean 'license_number'?
+src/components/clients/ClientTable.tsx(90,69): error TS2339: Property 'birth_place' does not exist on type 'Client'.
+src/components/contracts/ContractList.tsx(30,43): error TS2820: Type '"Completed"' is not assignable to type 'ContractStatus | undefined'. Did you mean '"completed"'?
+src/components/contracts/ContractList.tsx(32,55): error TS2339: Property 'vehicles' does not exist on type 'Contract'.
+src/components/contracts/ContractList.tsx(32,83): error TS2339: Property 'vehicles' does not exist on type 'Contract'.
+src/components/contracts/ContractWizard.tsx(123,38): error TS2551: Property 'driver_driver_license_number' does not exist on type 'Client'. Did you mean 'driver_license_number'?
+src/components/contracts/ContractWizard.tsx(143,11): error TS2820: Type '"Active"' is not assignable to type 'ContractStatus'. Did you mean '"active"'?
+src/components/contracts/ContractWizard.tsx(149,39): error TS2339: Property 'driver_license_number' does not exist on type '{ clientName: string; clientPhone: string; clientAddress: string; clientBirthDate: string; clientBirthPlace: string; licenseNumber: string; licenseDate: string; hasOtherDrivers: boolean; ... 24 more ...; initialDamages?: { ...; }[] | undefined; }'.
+src/components/contracts/ContractWizard.tsx(150,37): error TS2339: Property 'driver_license_date' does not exist on type '{ clientName: string; clientPhone: string; clientAddress: string; clientBirthDate: string; clientBirthPlace: string; licenseNumber: string; licenseDate: string; hasOtherDrivers: boolean; ... 24 more ...; initialDamages?: { ...; }[] | undefined; }'.
+src/components/contracts/ContractWizard.tsx(496,45): error TS2551: Property 'driver_driver_license_number' does not exist on type 'Client'. Did you mean 'driver_license_number'?
+src/components/contracts/EditClientModal.tsx(62,9): error TS2353: Object literal may only specify known properties, and 'date_of_birth' does not exist in type 'Partial<Client>'.
+src/components/fleet/FleetTable.tsx(28,3): error TS2300: Duplicate identifier 'mileage'.
+src/components/fleet/FleetTable.tsx(29,3): error TS2300: Duplicate identifier 'mileage'.
+src/components/fleet/FleetTable.tsx(30,3): error TS2300: Duplicate identifier 'mileage'.
+src/components/fleet/FleetTable.tsx(46,3): error TS1117: An object literal cannot have multiple properties with the same name.
+src/components/fleet/FleetTable.tsx(47,3): error TS1117: An object literal cannot have multiple properties with the same name.
+src/components/fleet/FleetTable.tsx(93,28): error TS2339: Property 'photos' does not exist on type 'NewVehicleForm'.
+src/components/fleet/FleetTable.tsx(103,20): error TS2339: Property 'photos' does not exist on type 'NewVehicleForm'.
+src/components/fleet/FleetTable.tsx(103,35): error TS7006: Parameter '_' implicitly has an 'any' type.
+src/components/fleet/FleetTable.tsx(103,38): error TS7006: Parameter 'i' implicitly has an 'any' type.
+src/components/fleet/FleetTable.tsx(130,44): error TS2339: Property 'photos' does not exist on type 'Vehicle'.
+src/components/fleet/FleetTable.tsx(141,32): error TS2339: Property 'photos' does not exist on type 'Vehicle'.
+src/components/fleet/FleetTable.tsx(170,37): error TS18047: 'v.mileage' is possibly 'null'.
+src/components/fleet/FleetTable.tsx(171,46): error TS18047: 'v.mileage' is possibly 'null'.
+src/components/fleet/FleetTable.tsx(254,38): error TS2339: Property 'type' does not exist on type 'Vehicle'.
+src/components/fleet/FleetTable.tsx(392,41): error TS2339: Property 'license_plate' does not exist on type 'NewVehicleForm'.
+src/components/fleet/FleetTable.tsx(606,68): error TS2339: Property 'type' does not exist on type 'Vehicle'.
+src/components/fleet/FleetTable.tsx(655,25): error TS2322: Type 'number | null' is not assignable to type 'string | number | readonly string[] | undefined'.
+  Type 'null' is not assignable to type 'string | number | readonly string[] | undefined'.
+src/components/fleet/FleetTable.tsx(694,25): error TS2322: Type 'string | null' is not assignable to type 'string | number | readonly string[] | undefined'.
+  Type 'null' is not assignable to type 'string | number | readonly string[] | undefined'.
+src/components/fleet/FleetTable.tsx(709,25): error TS2322: Type 'number | null' is not assignable to type 'string | number | readonly string[] | undefined'.
+  Type 'null' is not assignable to type 'string | number | readonly string[] | undefined'.
+src/components/fleet/FleetTable.tsx(724,25): error TS2322: Type 'number | null' is not assignable to type 'string | number | readonly string[] | undefined'.
+  Type 'null' is not assignable to type 'string | number | readonly string[] | undefined'.
+src/components/fleet/FleetTable.tsx(739,25): error TS2322: Type 'number | null' is not assignable to type 'string | number | readonly string[] | undefined'.
+  Type 'null' is not assignable to type 'string | number | readonly string[] | undefined'.
+src/components/fleet/FleetTable.tsx(756,48): error TS2339: Property 'type' does not exist on type 'Vehicle'.
+src/components/fleet/FleetTable.tsx(758,68): error TS2353: Object literal may only specify known properties, and 'type' does not exist in type 'Vehicle | ((prevState: Vehicle | null) => Vehicle | null)'.
+src/components/fleet/FleetTable.tsx(913,31): error TS18047: 'selectedVehicle.mileage' is possibly 'null'.
+src/components/fleet/FleetTable.tsx(913,57): error TS18047: 'selectedVehicle.mileage' is possibly 'null'.
+src/components/fleet/FleetTable.tsx(928,27): error TS18047: 'selectedVehicle.mileage' is possibly 'null'.
+src/components/fleet/FleetTable.tsx(929,29): error TS18047: 'selectedVehicle.mileage' is possibly 'null'.
+src/components/fleet/ReturnVehicleModal.tsx(50,9): error TS2353: Object literal may only specify known properties, and 'return_mileage' does not exist in type 'Partial<Contract>'.
+src/components/fleet/ReturnVehicleModal.tsx(59,9): error TS2353: Object literal may only specify known properties, and 'current_mileage' does not exist in type 'Partial<Vehicle>'.
+src/components/fleet/ReturnVehicleModal.tsx(258,46): error TS7006: Parameter 'photo' implicitly has an 'any' type.
+src/components/fleet/ReturnVehicleModal.tsx(258,53): error TS7006: Parameter 'i' implicitly has an 'any' type.

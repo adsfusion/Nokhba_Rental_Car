@@ -1,0 +1,29 @@
+{
+  "node": {
+    "40cd0caed5b503d7aa96e252912c9ba1ce0bafe4ba": {
+      "workers": {
+        "app/sign/[contractId]/page": {
+          "moduleId": 23327,
+          "async": false,
+          "exportedName": "getPublicContractDetails",
+          "filename": "src/lib/actions/publicContracts.ts"
+        }
+      },
+      "exportedName": "getPublicContractDetails",
+      "filename": "src/lib/actions/publicContracts.ts"
+    },
+    "60cff46931edebbd904cafe4d3d9d0bb0218684b87": {
+      "workers": {
+        "app/sign/[contractId]/page": {
+          "moduleId": 23327,
+          "async": false,
+          "exportedName": "submitContractSignature",
+          "filename": "src/lib/actions/publicContracts.ts"
+        }
+      },
+      "exportedName": "submitContractSignature",
+      "filename": "src/lib/actions/publicContracts.ts"
+    }
+  },
+  "edge": {}
+}

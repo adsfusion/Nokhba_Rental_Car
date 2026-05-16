@@ -1,0 +1,121 @@
+import Link from 'next/link';
+import { Car, Users, FileText, Bell } from 'lucide-react';
+
+export default function DashboardPage() {
+  const stats = [
+    { label: 'Active Contracts', value: '24', trend: '+12%', color: 'text-blue-600' },
+    { label: 'Available Cars', value: '8', trend: '32 total', color: 'text-green-600' },
+    { label: 'Upcoming Returns', value: '3', trend: 'Today', color: 'text-amber-600' },
+    { label: 'Revenue (MTD)', value: '€42,500', trend: '+18.2%', color: 'text-slate-900' },
+  ];
+
+  const recentActivity = [
+    { user: 'Sarah Connor', action: 'signed contract', target: 'MERCEDES G-CLASS', time: '2 mins ago', icon: FileText, color: 'text-blue-600', bg: 'bg-blue-50' },
+    { user: 'James Bond', action: 'returned vehicle', target: 'ASTON MARTIN DB11', time: '1 hour ago', icon: Car, color: 'text-green-600', bg: 'bg-green-50' },
+    { user: 'John Wick', action: 'added new client', target: 'Vinci Group', time: '4 hours ago', icon: Users, color: 'text-purple-600', bg: 'bg-purple-50' },
+    { user: 'Ellen Ripley', action: 'reported issue', target: 'APC Carrier', time: 'Yesterday', icon: Bell, color: 'text-red-600', bg: 'bg-red-50' },
+  ];
+
+  const fleetStatus = [
+    { label: 'In Use', value: 75, color: 'bg-blue-500' },
+    { label: 'Maintenance', value: 10, color: 'bg-amber-500' },
+    { label: 'Available', value: 15, color: 'bg-green-500' },
+  ];
+
+  return (
+    <div className="space-y-8">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+          <h2 className="text-2xl font-bold text-slate-900 tracking-tight">Dashboard Overview</h2>
+          <p className="text-slate-500 text-sm">
+            Welcome back, here&apos;s what&apos;s happening with your fleet today.
+          </p>
+        </div>
+        <div className="flex items-center gap-3">
+          <button className="px-4 py-2 bg-white border border-slate-200 rounded-xl text-sm font-semibold text-slate-700 hover:bg-slate-50 transition-colors shadow-sm">
+            Export Reports
+          </button>
+          <Link
+            href="/fleet"
+            className="px-4 py-2 bg-slate-900 text-white rounded-xl text-sm font-semibold hover:bg-slate-800 transition-colors shadow-sm flex items-center gap-2"
+          >
+            <Car size={16} />
+            Add Vehicle
+          </Link>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        {stats.map((stat) => (
+          <div
+            key={stat.label}
+            className="bg-surface-container-lowest p-6 rounded-2xl border border-slate-200 shadow-sm"
+          >
+            <p className="text-xs font-bold uppercase tracking-wider text-slate-400 mb-1">{stat.label}</p>
+            <div className="flex items-end justify-between">
+              <h3 className={`text-3xl font-bold tracking-tight ${stat.color}`}>{stat.value}</h3>
+              <span className="text-[10px] font-bold bg-slate-50 text-slate-500 px-2 py-1 rounded-md border border-slate-100">
+                {stat.trend}
+              </span>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        <div className="lg:col-span-2 bg-surface-container-lowest border border-slate-200 rounded-2xl shadow-sm flex flex-col">
+          <div className="p-6 border-b border-slate-100 flex items-center justify-between">
+            <h3 className="font-bold text-slate-900">Recent Activity</h3>
+            <button className="text-sm font-semibold text-slate-500 hover:text-slate-900">View all</button>
+          </div>
+          <div className="divide-y divide-slate-100">
+            {recentActivity.map((activity, i) => (
+              <div key={i} className="p-4 flex items-center gap-4 hover:bg-slate-50/50 transition-colors">
+                <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${activity.bg} ${activity.color}`}>
+                  <activity.icon size={20} />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm text-slate-600">
+                    <span className="font-bold text-slate-900">{activity.user}</span>{' '}
+                    {activity.action}{' '}
+                    <span className="font-semibold text-slate-800">{activity.target}</span>
+                  </p>
+                  <p className="text-xs text-slate-400 mt-0.5">{activity.time}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        <div className="space-y-6">
+          <div className="bg-surface-container-lowest border border-slate-200 rounded-2xl shadow-sm p-6">
+            <h3 className="font-bold text-slate-900 mb-4">Fleet Status</h3>
+            <div className="space-y-4">
+              {fleetStatus.map((item) => (
+                <div key={item.label} className="space-y-1.5">
+                  <div className="flex justify-between text-xs font-semibold uppercase tracking-wider text-slate-500">
+                    <span>{item.label}</span>
+                    <span>{item.value}%</span>
+                  </div>
+                  <div className="h-2 bg-slate-100 rounded-full overflow-hidden">
+                    <div className={`h-full rounded-full ${item.color}`} style={{ width: `${item.value}%` }} />
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <div className="bg-slate-900 rounded-2xl p-6 text-white shadow-lg shadow-slate-900/20">
+            <h3 className="font-bold mb-2">Upgrade to Pro</h3>
+            <p className="text-slate-400 text-xs mb-4">
+              Unlock premium features like multi-user access and advanced analytics.
+            </p>
+            <button className="w-full bg-white text-slate-900 font-bold py-2 rounded-xl text-sm hover:bg-slate-100 transition-colors">
+              Learn More
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
