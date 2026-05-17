@@ -1,7 +1,8 @@
 'use client';
 
 import { useState } from 'react';
-import { Plus, Users, User, Phone, IdCard } from 'lucide-react';
+import Link from 'next/link';
+import { Plus, Users, User, Phone, IdCard, ArrowRight } from 'lucide-react';
 import type { Client } from '@/types';
 import { AddClientModal } from './AddClientModal';
 
@@ -50,11 +51,12 @@ export function ClientTable({ clients }: Props) {
           ) : (
             <div className="divide-y divide-slate-100">
               {clients.map((client) => (
-                <div
+                <Link
                   key={client.id}
-                  className="p-5 flex flex-col sm:flex-row sm:items-center gap-4 hover:bg-slate-50/50 transition-colors"
+                  href={`/clients/${client.id}`}
+                  className="p-5 flex flex-col sm:flex-row sm:items-center gap-4 hover:bg-slate-50/70 transition-colors group"
                 >
-                  <div className="w-10 h-10 rounded-xl bg-slate-100 flex items-center justify-center text-slate-400 shrink-0">
+                  <div className="w-10 h-10 rounded-xl bg-slate-100 flex items-center justify-center text-slate-400 shrink-0 group-hover:bg-slate-900 group-hover:text-white transition-colors">
                     <User size={20} />
                   </div>
 
@@ -80,23 +82,27 @@ export function ClientTable({ clients }: Props) {
                       </p>
                       <p className="text-sm text-slate-700 flex items-center gap-1.5">
                         <IdCard size={12} className="text-slate-400" />
-                        {client.driver_license_number}
+                        {client.driver_license_number ?? '—'}
                       </p>
                     </div>
                     <div>
                       <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-0.5">
-                        Location
+                        City
                       </p>
-                      <p className="text-sm text-slate-700">{''}</p>
+                      <p className="text-sm text-slate-700">{client.city ?? '—'}</p>
                     </div>
                   </div>
 
-                  <div className="text-end">
-                    <p className="text-[10px] text-slate-400">
+                  <div className="flex items-center gap-3 self-end sm:self-auto">
+                    <span className="text-[10px] text-slate-400 hidden sm:inline">
                       {client.created_at ? new Date(client.created_at).toLocaleDateString() : '---'}
-                    </p>
+                    </span>
+                    <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-slate-700 bg-white border border-slate-200 px-3 py-1.5 rounded-lg shadow-sm group-hover:bg-slate-900 group-hover:text-white group-hover:border-slate-900 transition-all">
+                      View Profile
+                      <ArrowRight size={14} />
+                    </span>
                   </div>
-                </div>
+                </Link>
               ))}
             </div>
           )}

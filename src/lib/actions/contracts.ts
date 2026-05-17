@@ -20,6 +20,20 @@ export async function getContracts(): Promise<ContractWithDetails[]> {
   return (data ?? []) as ContractWithDetails[];
 }
 
+export async function getContractsByClientId(
+  clientId: string
+): Promise<ContractWithDetails[]> {
+  const supabase = await createSupabaseServerClient();
+  const { data, error } = await supabase
+    .from('contracts')
+    .select('*, clients(*), vehicles(*)')
+    .eq('client_id', clientId)
+    .order('created_at', { ascending: false });
+
+  if (error) throw error;
+  return (data ?? []) as ContractWithDetails[];
+}
+
 export async function addContract(
   contract: Omit<Contract, 'id' | 'tenant_id' | 'created_at'>
 ): Promise<Contract> {
@@ -64,6 +78,44 @@ export async function updateContract(
 
   revalidatePath('/contracts');
   return data as Contract;
+}
+
+export async function getContractById(id: string): Promise<ContractWithDetails | null> {
+  const supabase = await createSupabaseServerClient();
+  const { data, error } = await supabase
+    .from('contracts')
+    .select('*, clients(*), vehicles(*)')
+    .eq('id', id)
+    .maybeSingle();
+
+  if (error) throw error;
+  return data as ContractWithDetails | null;
+}
+
+export async function processContractReturn(
+  contractId: string,
+  vehicleId: string,
+  data: { return_mileage: number; return_fuel_level: string; return_notes: string }
+): Promise<void> {
+  const supabase = await createSupabaseServerClient();
+
+  await supabase
+    .from('contracts')
+    .update({
+      status: 'completed',
+      returned_at: new Date().toISOString(),
+      return_mileage: data.return_mileage,
+      return_fuel_level: data.return_fuel_level,
+      return_notes: data.return_notes || null,
+    })
+    .eq('id', contractId);
+
+  await supabase
+    .from('vehicles')
+    .update({ status: 'available', mileage: data.return_mileage })
+    .eq('id', vehicleId);
+
+  revalidatePath('/contracts');
 }
 
 export async function getNextContractId(): Promise<string> {

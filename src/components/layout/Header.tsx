@@ -5,22 +5,23 @@ import { motion, AnimatePresence } from 'motion/react';
 import { Bell, Search, Globe, CheckCircle2, XCircle, Info, Trash2, Menu } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useNotifications } from './NotificationProvider';
+import { useSidebar } from './SidebarContext';
 
 type Props = {
   userName?: string;
   userInitials?: string;
-  onMobileMenuClick?: () => void;
 };
 
-export function Header({ userName = 'User', userInitials = 'U', onMobileMenuClick }: Props) {
+export function Header({ userName = 'User', userInitials = 'U' }: Props) {
   const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
+  const { toggle } = useSidebar();
   const { unreadCount, notifications, markAsRead, markAllAsRead, clearAll } = useNotifications();
 
   return (
     <header className="h-16 bg-surface-container-lowest border-b border-slate-100 sticky top-0 z-30 px-4 lg:px-8 flex items-center justify-between">
       <div className="flex items-center gap-4">
         <button
-          onClick={onMobileMenuClick}
+          onClick={toggle}
           className="p-2 text-slate-500 hover:bg-slate-50 rounded-lg lg:hidden"
         >
           <Menu size={20} />

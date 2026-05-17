@@ -50,10 +50,11 @@ export async function submitContractSignature(contractId: string, base64Signatur
 
   const { error: updateError } = await supabase
     .from('contracts')
-    .update({ 
+    .update({
       signature_url: urlData.publicUrl,
       signed_at: new Date().toISOString(),
-      status: 'signed'
+      status: 'signed',
+      terms_accepted: true,
     })
     .eq('id', contractId);
 

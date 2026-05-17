@@ -2,7 +2,6 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { useState } from 'react';
 import {
   Car,
   Users,
@@ -13,6 +12,7 @@ import {
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { logout } from '@/lib/actions/auth';
+import { useSidebar } from './SidebarContext';
 
 type NavItem = {
   title: string;
@@ -33,7 +33,7 @@ const secondaryNav: NavItem[] = [
 ];
 
 export function Sidebar() {
-  const [isOpen, setIsOpen] = useState(false);
+  const { open: isOpen, close } = useSidebar();
   const pathname = usePathname();
 
   return (
@@ -43,7 +43,7 @@ export function Sidebar() {
           'fixed inset-0 bg-slate-900/20 backdrop-blur-sm z-40 transition-opacity lg:hidden',
           isOpen ? 'opacity-100' : 'opacity-0 pointer-events-none'
         )}
-        onClick={() => setIsOpen(false)}
+        onClick={close}
       />
 
       <aside
@@ -72,7 +72,7 @@ export function Sidebar() {
                 <Link
                   key={item.href}
                   href={item.href}
-                  onClick={() => setIsOpen(false)}
+                  onClick={close}
                   className={cn(
                     'flex items-center justify-between px-3 py-2 rounded-lg transition-all group',
                     isActive
@@ -111,7 +111,7 @@ export function Sidebar() {
                 <Link
                   key={item.href}
                   href={item.href}
-                  onClick={() => setIsOpen(false)}
+                  onClick={close}
                   className={cn(
                     'flex items-center gap-3 px-3 py-2 text-sm font-medium rounded-lg transition-colors',
                     isActive

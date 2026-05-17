@@ -1,12 +1,13 @@
 'use client';
 
-import { useState, useEffect, useTransition } from 'react';
+import { useState, useEffect, useTransition, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { Loader2, Download, Printer, UserCircle, Car, ShieldCheck, CreditCard, ChevronRight, Check } from 'lucide-react';
+import { Loader2, Download, UserCircle, Car, ShieldCheck, CreditCard, ChevronRight, Check, QrCode, IdCard as IdCardIcon } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { QRCodeCanvas } from 'qrcode.react';
+import SignatureCanvas from 'react-signature-canvas';
 import { generateAdvancedPDF } from '@/lib/pdfGenerator';
 import {
   ArrowLeft, Calendar, CheckCircle2, UserPlus, Clock, Phone,
@@ -18,6 +19,9 @@ import { cn } from '@/lib/utils';
 import { contractSchema, type ContractFormData } from '@/lib/validations/contract';
 import { addContract, getNextContractId } from '@/lib/actions/contracts';
 import { updateVehicle } from '@/lib/actions/vehicles';
+import { submitContractSignature } from '@/lib/actions/publicContracts';
+import { uploadClientDocument, type DocumentType } from '@/lib/actions/clientDocuments';
+import { createSupabaseBrowserClient } from '@/lib/supabase/client';
 import { useNotifications } from '@/components/layout/NotificationProvider';
 import { SignatureModal } from './SignatureModal';
 import type { Vehicle, Client } from '@/types';
@@ -52,6 +56,22 @@ export function ContractWizard({ vehicles, clients }: Props) {
   // Visual selection state for Step 1
   const [selectedClientId, setSelectedClientId] = useState<string | null>(null);
   const [selectedVehicleId, setSelectedVehicleId] = useState<string | null>(null);
+
+  // Post-submission state
+  type SigningMode = 'local' | 'remote' | null;
+  const [signingMode, setSigningMode] = useState<SigningMode>(null);
+  const [newContractId, setNewContractId] = useState<string | null>(null);
+  const [isLocalSignPending, setIsLocalSignPending] = useState(false);
+  const localSigRef = useRef<SignatureCanvas>(null);
+
+  // Local 2-step flow: upload docs first, then sign
+  const [localStep, setLocalStep] = useState<'upload' | 'sign'>('upload');
+  type DocState = 'idle' | 'uploading' | 'done' | 'error';
+  const [localDocStates, setLocalDocStates] = useState<Record<DocumentType, DocState>>({
+    id_front: 'idle', id_back: 'idle', license_front: 'idle', license_back: 'idle',
+  });
+  const localFileRefs = useRef<Partial<Record<DocumentType, HTMLInputElement | null>>>({});
+  const allLocalDocsDone = Object.values(localDocStates).every((s) => s === 'done');
 
   const {
     register,
@@ -116,6 +136,57 @@ export function ContractWizard({ vehicles, clients }: Props) {
 
   const canProceedFromStep1 = !!selectedClientId && !!selectedVehicleId;
 
+  // Realtime — unlocks PDF the moment the remote client completes the mobile flow
+  useEffect(() => {
+    if (!isSubmitted || !newContractId) return;
+    const supabase = createSupabaseBrowserClient();
+    const channel = supabase
+      .channel(`contract-${newContractId}`)
+      .on(
+        'postgres_changes',
+        { event: 'UPDATE', schema: 'public', table: 'contracts', filter: `id=eq.${newContractId}` },
+        (payload) => {
+          const updated = payload.new as any;
+          if ((updated.status === 'signed' || updated.status === 'completed') && updated.signature_url) {
+            setContractData((prev) => prev ? { ...prev, signature: updated.signature_url } : prev);
+            setSigningMode('remote'); // surface QR screen with unlocked PDF
+            addNotification('Contract Signed!', 'Client completed the mobile flow. PDF is now ready.', 'success');
+          }
+        }
+      )
+      .subscribe();
+    return () => { supabase.removeChannel(channel); };
+  }, [isSubmitted, newContractId]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const handleLocalDocUpload = async (type: DocumentType, file: File) => {
+    if (!frozenClient?.id) return;
+    setLocalDocStates((p) => ({ ...p, [type]: 'uploading' }));
+    try {
+      const fd = new FormData();
+      fd.append('file', file);
+      await uploadClientDocument(frozenClient.id, type, fd);
+      setLocalDocStates((p) => ({ ...p, [type]: 'done' }));
+    } catch {
+      setLocalDocStates((p) => ({ ...p, [type]: 'error' }));
+    }
+  };
+
+  const handleLocalSign = async () => {
+    if (!localSigRef.current || localSigRef.current.isEmpty() || !newContractId) return;
+    setIsLocalSignPending(true);
+    try {
+      const dataUrl = localSigRef.current.toDataURL('image/png');
+      await submitContractSignature(newContractId, dataUrl);
+      setContractData((prev) => prev ? { ...prev, signature: dataUrl } : prev);
+      addNotification('Signed!', 'Documents uploaded and contract signed. PDF is now ready.', 'success');
+      setSigningMode('remote');
+    } catch (err: any) {
+      addNotification('Error', err.message || 'Failed to save signature.', 'error');
+    } finally {
+      setIsLocalSignPending(false);
+    }
+  };
+
   const nextStep = () => setStep((s) => Math.min(s + 1, 3));
   const prevStep = () => setStep((s) => Math.max(s - 1, 1));
 
@@ -154,7 +225,7 @@ export function ContractWizard({ vehicles, clients }: Props) {
         
         const newContract = await addContract({
           ...({} as any),
-          status: 'active' as any,
+          status: 'pending_signature' as any,
           client_id: selectedClientId!,
           contract_number: data.contractId,
           vehicle_id: data.vehicleId,
@@ -166,11 +237,17 @@ export function ContractWizard({ vehicles, clients }: Props) {
           total_amount: data.dailyRate * data.rentalDurationDays,
           deposit_amount: data.deposit,
           signature_url: data.signature,
+          // Capture vehicle's current odometer reading at contract creation.
+          // ProcessReturnModal uses this as the minimum valid return mileage.
+          extra_data: {
+            vehicle_start_mileage: data.vehicleStartMileage ?? 0,
+          },
         });
 
         await updateVehicle(data.vehicleId, { status: 'rented' });
 
         setContractData(data);
+        setNewContractId(newContract.id);
         setContractLink(
           `${typeof window !== 'undefined' ? window.location.origin : ''}/sign/${newContract.id}`
         );
@@ -184,17 +261,35 @@ export function ContractWizard({ vehicles, clients }: Props) {
   };
 
 
+  // Converts a remote URL or existing data URL to a base64 data URL for jsPDF
+  const toBase64DataUrl = async (src: string): Promise<string> => {
+    if (src.startsWith('data:')) return src;
+    const resp = await fetch(src);
+    const blob = await resp.blob();
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onloadend = () => resolve(reader.result as string);
+      reader.onerror = reject;
+      reader.readAsDataURL(blob);
+    });
+  };
+
   const downloadPDF = async () => {
+    if (!contractData?.signature) {
+      addNotification('Not Ready', 'Waiting for client signature before PDF can be generated.', 'error');
+      return;
+    }
     try {
       if (!contractData || !frozenClient || !frozenVehicle) return;
-      
       setIsPdfLoading(true);
 
       const rentalDurationDays = Math.ceil(
         (new Date(contractData.endDate).getTime() - new Date(contractData.startDate).getTime()) / (1000 * 60 * 60 * 24)
       ) || 1;
 
-      // 1. Generate the advanced PDF document
+      // Always embed signature as base64 so jsPDF never hits CORS
+      const signatureBase64 = await toBase64DataUrl(contractData.signature);
+
       const doc = generateAdvancedPDF({
         clientName: frozenClient?.full_name || frozenClient?.name,
         clientPhone: frozenClient?.phone,
@@ -211,79 +306,274 @@ export function ContractWizard({ vehicles, clients }: Props) {
         vehicleRegistrationDate: frozenVehicle?.year,
         deposit: contractData.deposit || 200,
         vehicleStartMileage: frozenVehicle?.mileage,
-        signature: contractData?.signature || null
+        signature: signatureBase64,
       });
 
-      // 2. Safely generate a blob and create an object URL to prevent crashes
       const pdfBlob = doc.output('blob');
       const blobUrl = URL.createObjectURL(pdfBlob);
-
-      // 3. Create a temporary anchor element to trigger the download
-      const downloadLink = document.createElement('a');
-      downloadLink.href = blobUrl;
-      downloadLink.download = `Contrat_Location_${frozenClient?.full_name || 'Client'}.pdf`;
-      document.body.appendChild(downloadLink);
-      downloadLink.click();
-      
-      // 4. Cleanup
-      document.body.removeChild(downloadLink);
+      const a = document.createElement('a');
+      a.href = blobUrl;
+      a.download = `Contrat_Location_${frozenClient?.full_name || 'Client'}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
       URL.revokeObjectURL(blobUrl);
 
-      addNotification("Success", "PDF Generated Successfully!", "success");
+      addNotification('Success', 'PDF downloaded with embedded signature.', 'success');
     } catch (err: any) {
-      console.error(err);
-      addNotification("Error", "PDF Engine Crash: " + err.message, "error");
+      addNotification('Error', 'PDF generation failed: ' + err.message, 'error');
     } finally {
       setIsPdfLoading(false);
     }
   };
 
-  // ── Success screen ─────────────────────────────────────────────────────────
-  if (isSubmitted && contractData) {
+  // ── Screen: Awaiting Docs & Signature ─────────────────────────────────────
+  if (isSubmitted && contractData && signingMode === null) {
     return (
       <div className="max-w-2xl mx-auto text-center space-y-6 py-12">
-        <div className="w-24 h-24 bg-green-100 text-green-600 rounded-full flex items-center justify-center mx-auto shadow-xl shadow-green-900/10 mb-8">
-          <CheckCircle2 size={48} />
+        <div className="w-24 h-24 bg-amber-50 text-amber-500 border-2 border-amber-200 rounded-full flex items-center justify-center mx-auto shadow-lg">
+          <Clock size={44} />
         </div>
-        <h2 className="text-3xl font-bold border-b pb-4 text-slate-900">Contract Generated Successfully!</h2>
-        <p className="text-slate-500">
-          The rental agreement for{' '}
-          <span className="font-bold text-slate-800">{contractData.clientName}</span> has been finalized
-          and signed.
+        <div>
+          <h2 className="text-3xl font-bold text-slate-900">Awaiting Docs &amp; Signature</h2>
+          <p className="text-slate-500 mt-2">
+            Contract for <span className="font-bold text-slate-800">{contractData.clientName}</span> is pending.
+            <br />The PDF will unlock once documents are uploaded and the client signs.
+          </p>
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+          <button
+            type="button"
+            onClick={() => { setSigningMode('local'); setLocalStep('upload'); }}
+            className="p-8 bg-white border-2 border-slate-200 hover:border-slate-900 rounded-2xl text-start flex flex-col gap-3 transition-all group shadow-sm"
+          >
+            <div className="w-12 h-12 bg-slate-100 group-hover:bg-slate-900 rounded-xl flex items-center justify-center transition-colors">
+              <PenLine size={24} className="text-slate-600 group-hover:text-white transition-colors" />
+            </div>
+            <div>
+              <p className="font-bold text-slate-900 text-lg">Client is Present</p>
+              <p className="text-sm text-slate-500 mt-1">Upload docs &amp; sign on this device</p>
+            </div>
+          </button>
+          <button
+            type="button"
+            onClick={() => setSigningMode('remote')}
+            className="p-8 bg-white border-2 border-slate-200 hover:border-slate-900 rounded-2xl text-start flex flex-col gap-3 transition-all group shadow-sm"
+          >
+            <div className="w-12 h-12 bg-slate-100 group-hover:bg-slate-900 rounded-xl flex items-center justify-center transition-colors">
+              <QrCode size={24} className="text-slate-600 group-hover:text-white transition-colors" />
+            </div>
+            <div>
+              <p className="font-bold text-slate-900 text-lg">Send to Mobile</p>
+              <p className="text-sm text-slate-500 mt-1">Client uploads docs &amp; signs via QR</p>
+            </div>
+          </button>
+        </div>
+        <p className="text-[11px] text-slate-400 italic">
+          This page listens live — the PDF button will unlock automatically when the client completes the mobile flow.
         </p>
+      </div>
+    );
+  }
 
-        <div className="bg-white p-8 rounded-3xl border border-slate-200 shadow-sm inline-flex flex-col items-center gap-4 mt-8">
+  // ── Screen: Local 2-step (Upload → Sign) ──────────────────────────────────
+  if (isSubmitted && contractData && signingMode === 'local') {
+    const DOC_SLOTS: { key: DocumentType; label: string }[] = [
+      { key: 'id_front',      label: 'ID Card — Front' },
+      { key: 'id_back',       label: 'ID Card — Back' },
+      { key: 'license_front', label: 'Driver License — Front' },
+      { key: 'license_back',  label: 'Driver License — Back' },
+    ];
+    return (
+      <div className="max-w-xl mx-auto space-y-6 py-12">
+        <button
+          type="button"
+          onClick={() => setSigningMode(null)}
+          className="flex items-center gap-2 text-sm font-semibold text-slate-500 hover:text-slate-900 transition-colors"
+        >
+          <ArrowLeft size={16} /> Back
+        </button>
+
+        {/* Step indicator */}
+        <div className="flex items-center gap-3">
+          <div className={cn('w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold border-2', localStep === 'upload' ? 'bg-slate-900 border-slate-900 text-white' : 'bg-white border-slate-300 text-slate-400')}>
+            1
+          </div>
+          <div className="flex-1 h-0.5 bg-slate-200" />
+          <div className={cn('w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold border-2', localStep === 'sign' ? 'bg-slate-900 border-slate-900 text-white' : 'bg-white border-slate-300 text-slate-400')}>
+            2
+          </div>
+          <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">
+            {localStep === 'upload' ? 'Upload Documents' : 'Client Signature'}
+          </span>
+        </div>
+
+        {/* Step 1: Upload */}
+        {localStep === 'upload' && (
+          <div className="space-y-4">
+            <p className="text-slate-500 text-sm">Upload or photograph all 4 documents before proceeding to the signature.</p>
+            <div className="grid grid-cols-2 gap-3">
+              {DOC_SLOTS.map((slot) => {
+                const state = localDocStates[slot.key];
+                return (
+                  <div
+                    key={slot.key}
+                    className={cn(
+                      'aspect-[3/2] border-2 rounded-2xl flex flex-col items-center justify-center gap-1.5 px-2 transition-all cursor-pointer relative group',
+                      state === 'done'      && 'border-green-400 bg-green-50',
+                      state === 'uploading' && 'border-slate-300 bg-slate-50',
+                      state === 'error'     && 'border-red-300 bg-red-50',
+                      state === 'idle'      && 'border-dashed border-slate-300 bg-slate-50 hover:border-slate-500',
+                    )}
+                    onClick={() => state !== 'uploading' && localFileRefs.current[slot.key]?.click()}
+                  >
+                    {state === 'uploading' ? (
+                      <Loader2 size={20} className="animate-spin text-slate-400" />
+                    ) : state === 'done' ? (
+                      <CheckCircle2 size={20} className="text-green-500" />
+                    ) : (
+                      <IdCardIcon size={18} className="text-slate-400" />
+                    )}
+                    <p className="text-[9px] font-bold text-slate-500 text-center leading-tight">{slot.label}</p>
+                    {state === 'done' && <p className="text-[8px] font-bold text-green-600 uppercase tracking-wide">Uploaded</p>}
+                    {state === 'error' && <p className="text-[8px] font-bold text-red-500 uppercase tracking-wide">Retry</p>}
+                    <input
+                      ref={(el) => { localFileRefs.current[slot.key] = el; }}
+                      type="file"
+                      accept="image/png,image/jpeg,image/webp,application/pdf"
+                      className="hidden"
+                      onChange={(e) => {
+                        const file = e.target.files?.[0];
+                        if (file) handleLocalDocUpload(slot.key, file);
+                        e.target.value = '';
+                      }}
+                    />
+                  </div>
+                );
+              })}
+            </div>
+            <div className="flex justify-end">
+              <button
+                type="button"
+                disabled={!allLocalDocsDone}
+                onClick={() => setLocalStep('sign')}
+                className="px-8 py-3 bg-slate-900 text-white rounded-xl font-bold shadow-lg shadow-slate-900/10 hover:bg-slate-800 transition-all flex items-center gap-2 disabled:opacity-40 disabled:cursor-not-allowed"
+              >
+                Continue to Signature <ChevronRight size={18} />
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* Step 2: Sign */}
+        {localStep === 'sign' && (
+          <div className="space-y-4">
+            <div>
+              <h2 className="text-2xl font-bold text-slate-900">Client Signature</h2>
+              <p className="text-slate-500 text-sm mt-1">Ask the client to sign in the box below.</p>
+            </div>
+            <div className="relative border-2 border-dashed border-slate-300 rounded-2xl overflow-hidden bg-slate-50">
+              <p className="absolute top-3 start-3 text-xs text-slate-300 font-medium pointer-events-none select-none">Sign Here</p>
+              <SignatureCanvas
+                ref={localSigRef}
+                penColor="black"
+                canvasProps={{ className: 'w-full h-64', style: { touchAction: 'none' } }}
+              />
+            </div>
+            <div className="flex items-center justify-between">
+              <button
+                type="button"
+                onClick={() => localSigRef.current?.clear()}
+                className="text-sm font-semibold text-slate-500 hover:text-slate-700 transition-colors"
+              >
+                Clear
+              </button>
+              <button
+                type="button"
+                onClick={handleLocalSign}
+                disabled={isLocalSignPending}
+                className="px-8 py-3 bg-slate-900 text-white rounded-xl font-bold shadow-lg shadow-slate-900/10 hover:bg-slate-800 transition-all flex items-center gap-2 disabled:opacity-50"
+              >
+                {isLocalSignPending ? <Loader2 size={18} className="animate-spin" /> : <CheckCircle2 size={18} />}
+                {isLocalSignPending ? 'Saving…' : 'Confirm Signature'}
+              </button>
+            </div>
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  // ── Screen: Remote QR / PDF Unlock ────────────────────────────────────────
+  if (isSubmitted && contractData && signingMode === 'remote') {
+    const isSigned = !!contractData.signature;
+    return (
+      <div className="max-w-2xl mx-auto text-center space-y-6 py-12">
+        <div className={cn(
+          'w-24 h-24 rounded-full flex items-center justify-center mx-auto shadow-xl',
+          isSigned ? 'bg-blue-100 text-blue-600 shadow-blue-900/10' : 'bg-amber-50 text-amber-500 shadow-amber-900/10'
+        )}>
+          {isSigned ? <CheckCircle2 size={48} /> : <Clock size={44} />}
+        </div>
+        <h2 className="text-3xl font-bold border-b pb-4 text-slate-900">
+          {isSigned ? 'Contract Fully Signed!' : 'Waiting for Client…'}
+        </h2>
+
+        {isSigned ? (
+          <span className="inline-flex items-center gap-1.5 text-xs font-bold text-blue-700 bg-blue-50 border border-blue-200 px-3 py-1.5 rounded-full">
+            <CheckCircle2 size={12} /> Signature &amp; Documents Received
+          </span>
+        ) : (
+          <p className="text-slate-500 text-sm">
+            Share the QR code or link with{' '}
+            <span className="font-bold text-slate-800">{contractData.clientName}</span>.
+            <br />The client will upload their documents and sign — this page updates automatically.
+          </p>
+        )}
+
+        {/* QR code always visible so client can still scan */}
+        <div className="bg-white p-8 rounded-3xl border border-slate-200 shadow-sm inline-flex flex-col items-center gap-4">
           <QRCodeCanvas value={contractLink || 'https://nokhba.app'} size={200} level="H" className="rounded-xl" />
-          <p className="text-sm font-bold text-slate-500 uppercase tracking-widest mt-2">
-            Scan to View Details
+          <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">
+            Scan to Upload Docs &amp; Sign
           </p>
         </div>
 
-        <div className="pt-8 flex justify-center gap-4">
+        <div className="pt-4 flex justify-center gap-4">
+          {/* PDF locked until signed */}
           <button
             type="button"
-            onClick={(e) => {
-              e.preventDefault();
-              e.stopPropagation();
-              downloadPDF();
-            }}
-            className="px-8 py-3 bg-white text-slate-900 border border-slate-200 rounded-xl font-bold shadow-sm hover:bg-slate-50 transition-all flex items-center gap-2"
+            disabled={!isSigned || isPdfLoading}
+            onClick={downloadPDF}
+            title={!isSigned ? 'Waiting for client signature' : 'Download signed PDF'}
+            className={cn(
+              'px-8 py-3 rounded-xl font-bold shadow-sm transition-all flex items-center gap-2',
+              isSigned
+                ? 'bg-white text-slate-900 border border-slate-200 hover:bg-slate-50'
+                : 'bg-slate-100 text-slate-400 border border-slate-200 cursor-not-allowed'
+            )}
           >
-            <Download size={18} />
-            Download PDF
+            {isPdfLoading ? <Loader2 size={18} className="animate-spin" /> : <Download size={18} />}
+            {isSigned ? 'Download PDF' : 'PDF Locked — Awaiting Signature'}
           </button>
           <button
             type="button"
-            onClick={(e) => {
-              e.preventDefault();
-              router.push('/contracts');
-            }}
+            onClick={() => router.push('/contracts')}
             className="px-8 py-3 bg-slate-900 text-white rounded-xl font-bold shadow-lg shadow-slate-900/10 hover:bg-slate-800 transition-all flex items-center gap-2"
           >
-            Done
-            <ChevronRight size={18} />
+            Done <ChevronRight size={18} />
           </button>
         </div>
+
+        {!isSigned && (
+          <button
+            type="button"
+            onClick={() => setSigningMode(null)}
+            className="text-sm font-semibold text-slate-400 hover:text-slate-600 transition-colors"
+          >
+            ← Switch to local signing instead
+          </button>
+        )}
       </div>
     );
   }
@@ -592,11 +882,19 @@ export function ContractWizard({ vehicles, clients }: Props) {
                     <label className="text-xs font-bold uppercase tracking-wider text-slate-500">
                       Pickup Location
                     </label>
-                    <input
-                      {...register('pickupLocation')}
-                      className={inputClass}
-                      placeholder="e.g. Airport Terminal 1"
-                    />
+                    <select {...register('pickupLocation')} className={inputClass}>
+                      <option value="">— Select location —</option>
+                      <optgroup label="Cities">
+                        {['Casablanca','Rabat','Marrakech','Fès','Tangier','Agadir','Meknès','Oujda','Tétouan','Salé','El Jadida','Nador','Kénitra','Mohammedia','Beni Mellal','Khouribga','Settat','Safi','Larache','Berkane','Taza','Khémisset','Essaouira','Ouarzazate'].map((c) => (
+                          <option key={c} value={c}>{c}</option>
+                        ))}
+                      </optgroup>
+                      <optgroup label="Airports">
+                        {['Mohammed V (CMN) — Casablanca','Marrakech Menara (RAK)','Agadir Al Massira (AGA)','Tangier Ibn Battuta (TNG)','Fès–Saïs (FEZ)','Rabat–Salé (RBA)','Nador International (NDR)','Oujda Angads (OUD)','Essaouira–Mogador (ESU)','Ouarzazate (OZZ)','Dakhla (VIL)','Laâyoune Hassan I (EUN)'].map((a) => (
+                          <option key={a} value={a}>{a}</option>
+                        ))}
+                      </optgroup>
+                    </select>
                     {errors.pickupLocation && (
                       <p className="text-[10px] text-red-500 font-medium">{errors.pickupLocation.message}</p>
                     )}
@@ -606,11 +904,19 @@ export function ContractWizard({ vehicles, clients }: Props) {
                     <label className="text-xs font-bold uppercase tracking-wider text-slate-500">
                       Return Location
                     </label>
-                    <input
-                      {...register('returnLocation')}
-                      className={inputClass}
-                      placeholder="e.g. Agency Headquarters"
-                    />
+                    <select {...register('returnLocation')} className={inputClass}>
+                      <option value="">— Select location —</option>
+                      <optgroup label="Cities">
+                        {['Casablanca','Rabat','Marrakech','Fès','Tangier','Agadir','Meknès','Oujda','Tétouan','Salé','El Jadida','Nador','Kénitra','Mohammedia','Beni Mellal','Khouribga','Settat','Safi','Larache','Berkane','Taza','Khémisset','Essaouira','Ouarzazate'].map((c) => (
+                          <option key={c} value={c}>{c}</option>
+                        ))}
+                      </optgroup>
+                      <optgroup label="Airports">
+                        {['Mohammed V (CMN) — Casablanca','Marrakech Menara (RAK)','Agadir Al Massira (AGA)','Tangier Ibn Battuta (TNG)','Fès–Saïs (FEZ)','Rabat–Salé (RBA)','Nador International (NDR)','Oujda Angads (OUD)','Essaouira–Mogador (ESU)','Ouarzazate (OZZ)','Dakhla (VIL)','Laâyoune Hassan I (EUN)'].map((a) => (
+                          <option key={a} value={a}>{a}</option>
+                        ))}
+                      </optgroup>
+                    </select>
                     {errors.returnLocation && (
                       <p className="text-[10px] text-red-500 font-medium">{errors.returnLocation.message}</p>
                     )}

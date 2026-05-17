@@ -60,6 +60,11 @@ export type Contract = {
   pdf_url: string | null;
   notes: string | null;
   extra_data: Record<string, unknown> | null;
+  return_mileage: number | null;
+  return_fuel_level: string | null;
+  return_notes: string | null;
+  returned_at: string | null;
+  terms_accepted: boolean | null;
   created_at?: string;
   updated_at?: string;
 };

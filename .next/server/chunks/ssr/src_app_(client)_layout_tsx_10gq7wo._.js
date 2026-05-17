@@ -1,3 +1,0 @@
-module.exports=[75714,a=>{"use strict";var b=a.i(7997);a.s(["default",0,function({children:a}){return(0,b.jsxs)("div",{className:"min-h-screen bg-slate-50",children:[(0,b.jsx)("header",{className:"bg-white border-b border-slate-200 px-6 py-4",children:(0,b.jsxs)("div",{className:"max-w-2xl mx-auto flex items-center justify-between",children:[(0,b.jsx)("span",{className:"text-lg font-bold text-slate-900",children:"Nokhba Rental"}),(0,b.jsx)("span",{className:"text-xs text-slate-500",children:"Client Portal"})]})}),(0,b.jsx)("main",{className:"max-w-2xl mx-auto px-6 py-8",children:a})]})}])},6974,a=>{a.n(a.i(75714))}];
-
-//# sourceMappingURL=src_app_%28client%29_layout_tsx_10gq7wo._.js.map

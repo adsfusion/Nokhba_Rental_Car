@@ -15,6 +15,18 @@ export async function getClients(): Promise<Client[]> {
   return (data ?? []) as Client[];
 }
 
+export async function getClientById(id: string): Promise<Client | null> {
+  const supabase = await createSupabaseServerClient();
+  const { data, error } = await supabase
+    .from('clients')
+    .select('*')
+    .eq('id', id)
+    .maybeSingle();
+
+  if (error) throw error;
+  return (data as Client) ?? null;
+}
+
 export async function addClient(
   client: Omit<Client, 'id' | 'tenant_id' | 'created_at'>
 ): Promise<Client> {

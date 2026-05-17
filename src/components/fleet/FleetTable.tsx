@@ -149,11 +149,20 @@ export default function FleetTable({ vehicles, contracts }: FleetTableProps) {
   // ── Process Return ───────────────────────────────────────────
   function handleProcessReturn() {
     if (!selectedVehicle) return;
-    const activeContract = contracts.find(
-      (c) => c.vehicle_id === selectedVehicle.id && c.status === 'active'
+    const openContract = contracts.find(
+      (c) =>
+        c.vehicle_id === selectedVehicle.id &&
+        c.status !== 'completed' &&
+        c.status !== 'cancelled'
     );
-    if (activeContract) {
-      setReturningContractId(activeContract.id);
+    if (openContract) {
+      setReturningContractId(openContract.id);
+    } else {
+      addNotification(
+        'Cannot Process Return',
+        'No open rental contract found for this vehicle.',
+        'error'
+      );
     }
   }
 
@@ -231,7 +240,10 @@ export default function FleetTable({ vehicles, contracts }: FleetTableProps) {
             <tbody className="divide-y divide-slate-100">
               {filteredVehicles.map((vehicle) => {
                 const activeContract = contracts.find(
-                  (c) => c.vehicle_id === vehicle.id && c.status === 'active'
+                  (c) =>
+                    c.vehicle_id === vehicle.id &&
+                    c.status !== 'completed' &&
+                    c.status !== 'cancelled'
                 );
                 return (
                   <tr key={vehicle.id} className="group transition-colors hover:bg-slate-50/50">
@@ -959,7 +971,7 @@ export default function FleetTable({ vehicles, contracts }: FleetTableProps) {
                 </>
               ) : (
                 <>
-                  {selectedVehicle.status === 'rented' && (
+                  {selectedVehicle.status !== 'available' && (
                     <button
                       onClick={handleProcessReturn}
                       className="flex items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-bold text-slate-700 shadow-sm transition-colors hover:bg-slate-50"

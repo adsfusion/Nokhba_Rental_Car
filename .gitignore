@@ -1,8 +1,22 @@
+# Dependencies
 node_modules/
+
+# Build outputs
 build/
 dist/
 coverage/
-.DS_Store
-*.log
+.next/
+
+# Vercel
+.vercel
+
+# Environment variables
 .env*
 !.env.example
+
+# OS
+.DS_Store
+*.log
+
+# TypeScript incremental build info
+*.tsbuildinfo
