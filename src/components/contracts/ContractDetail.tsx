@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import {
   ArrowLeft, Download, Send, Settings, User, Car, Calendar,
@@ -12,6 +12,7 @@ import { type ContractWithDetails } from '@/lib/actions/contracts';
 import { type DocumentType } from '@/lib/actions/clientDocuments';
 import { SignLinkPopover } from './SignLinkPopover';
 import { signatureUrlToPngBase64 } from '@/lib/signatureToBase64';
+import { getSignatureSignedUrl } from '@/lib/actions/publicContracts';
 
 type Props = {
   contract: ContractWithDetails;
@@ -39,6 +40,8 @@ const ALL_DOC_TYPES: DocumentType[] = ['id_front', 'id_back', 'license_front', '
 export function ContractDetail({ contract, docUrls }: Props) {
   const [showSignLink, setShowSignLink] = useState(false);
   const [isPdfLoading, setIsPdfLoading] = useState(false);
+  const [signedPreviewUrl, setSignedPreviewUrl] = useState<string | null>(null);
+  const [previewError, setPreviewError] = useState(false);
 
   const statusCfg = STATUS_CONFIG[contract.status] ?? {
     label: contract.status,
@@ -47,6 +50,16 @@ export function ContractDetail({ contract, docUrls }: Props) {
 
   const isSigned = !!contract.signature_url;
   const totalAmount = (contract.daily_rate ?? 0) * (contract.total_days ?? 1);
+
+  // Resolve a short-lived signed URL for the signature preview (and PDF use)
+  useEffect(() => {
+    if (!contract.signature_url) return;
+    let cancelled = false;
+    getSignatureSignedUrl(contract.signature_url)
+      .then((url) => { if (!cancelled) setSignedPreviewUrl(url); })
+      .catch(() => { if (!cancelled) setPreviewError(true); });
+    return () => { cancelled = true; };
+  }, [contract.signature_url]);
 
   const handleDownloadPDF = async () => {
     if (isPdfLoading) return;
@@ -101,11 +114,17 @@ export function ContractDetail({ contract, docUrls }: Props) {
       doc.text(`Deposit: €${contract.deposit_amount ?? 0}`, 20, y); y += 5;
       doc.text(`Total: €${totalAmount}`, 20, y); y += 12;
 
-      // Signature image — safe fetch with HTTP error check + canvas PNG re-encoding
+      // Signature image:
+      // 1. Call getSignatureSignedUrl() — a Server Action that uses the
+      //    service-role key to generate a fresh 60-second signed URL from
+      //    Supabase Storage (private bucket).  This replaces getPublicUrl()
+      //    which returns a URL that 400/403s on private buckets.
+      // 2. Pass the signed URL to signatureUrlToPngBase64() which validates
+      //    the HTTP response and re-encodes the image to PNG via canvas,
+      //    eliminating any jsPDF "wrong PNG signature" crash.
       if (contract.signature_url) {
-        // signatureUrlToPngBase64 validates res.ok and re-encodes via canvas
-        // to guarantee a valid PNG regardless of Supabase storage MIME type.
-        const pngDataUrl = await signatureUrlToPngBase64(contract.signature_url);
+        const signedUrl = await getSignatureSignedUrl(contract.signature_url);
+        const pngDataUrl = await signatureUrlToPngBase64(signedUrl);
         doc.setFont('helvetica', 'bold');
         doc.text('CLIENT SIGNATURE', 20, y);
         y += 6;
@@ -227,11 +246,17 @@ export function ContractDetail({ contract, docUrls }: Props) {
           <div className="space-y-4">
             <div className="bg-slate-50 border border-slate-200 rounded-xl p-3 inline-block">
               {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
-                src={contract.signature_url!}
-                alt="Client signature"
-                className="max-h-24 object-contain"
-              />
+              {signedPreviewUrl ? (
+                <img
+                  src={signedPreviewUrl}
+                  alt="Client signature"
+                  className="max-h-24 object-contain"
+                />
+              ) : previewError ? (
+                <p className="text-xs text-red-400 px-2">Could not load signature preview</p>
+              ) : (
+                <div className="w-40 h-12 animate-pulse bg-slate-200 rounded" />
+              )}
             </div>
             {contract.signed_at && (
               <p className="text-xs text-slate-400 flex items-center gap-1.5">
