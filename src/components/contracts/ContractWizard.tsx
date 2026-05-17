@@ -24,6 +24,7 @@ import { uploadClientDocument, type DocumentType } from '@/lib/actions/clientDoc
 import { createSupabaseBrowserClient } from '@/lib/supabase/client';
 import { useNotifications } from '@/components/layout/NotificationProvider';
 import { SignatureModal } from './SignatureModal';
+import { signatureUrlToPngBase64 } from '@/lib/signatureToBase64';
 import type { Vehicle, Client } from '@/types';
 
 type Props = { vehicles: Vehicle[]; clients: Client[] };
@@ -261,19 +262,6 @@ export function ContractWizard({ vehicles, clients }: Props) {
   };
 
 
-  // Converts a remote URL or existing data URL to a base64 data URL for jsPDF
-  const toBase64DataUrl = async (src: string): Promise<string> => {
-    if (src.startsWith('data:')) return src;
-    const resp = await fetch(src);
-    const blob = await resp.blob();
-    return new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      reader.onloadend = () => resolve(reader.result as string);
-      reader.onerror = reject;
-      reader.readAsDataURL(blob);
-    });
-  };
-
   const downloadPDF = async () => {
     if (!contractData?.signature) {
       addNotification('Not Ready', 'Waiting for client signature before PDF can be generated.', 'error');
@@ -287,8 +275,9 @@ export function ContractWizard({ vehicles, clients }: Props) {
         (new Date(contractData.endDate).getTime() - new Date(contractData.startDate).getTime()) / (1000 * 60 * 60 * 24)
       ) || 1;
 
-      // Always embed signature as base64 so jsPDF never hits CORS
-      const signatureBase64 = await toBase64DataUrl(contractData.signature);
+      // Use the shared safe utility: validates HTTP status, re-encodes via
+      // canvas to guarantee data:image/png;base64 regardless of storage format.
+      const signatureBase64 = await signatureUrlToPngBase64(contractData.signature);
 
       const doc = generateAdvancedPDF({
         clientName: frozenClient?.full_name || frozenClient?.name,

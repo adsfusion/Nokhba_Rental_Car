@@ -5,11 +5,13 @@ import Link from 'next/link';
 import {
   ArrowLeft, Download, Send, Settings, User, Car, Calendar,
   DollarSign, FileImage, FileText, CheckCircle2, Clock, ExternalLink,
+  Loader2,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { type ContractWithDetails } from '@/lib/actions/contracts';
 import { type DocumentType } from '@/lib/actions/clientDocuments';
 import { SignLinkPopover } from './SignLinkPopover';
+import { signatureUrlToPngBase64 } from '@/lib/signatureToBase64';
 
 type Props = {
   contract: ContractWithDetails;
@@ -36,6 +38,7 @@ const ALL_DOC_TYPES: DocumentType[] = ['id_front', 'id_back', 'license_front', '
 
 export function ContractDetail({ contract, docUrls }: Props) {
   const [showSignLink, setShowSignLink] = useState(false);
+  const [isPdfLoading, setIsPdfLoading] = useState(false);
 
   const statusCfg = STATUS_CONFIG[contract.status] ?? {
     label: contract.status,
@@ -46,84 +49,83 @@ export function ContractDetail({ contract, docUrls }: Props) {
   const totalAmount = (contract.daily_rate ?? 0) * (contract.total_days ?? 1);
 
   const handleDownloadPDF = async () => {
-    const { default: jsPDF } = await import('jspdf');
-    const doc = new jsPDF();
+    if (isPdfLoading) return;
+    setIsPdfLoading(true);
+    try {
+      const { default: jsPDF } = await import('jspdf');
+      const doc = new jsPDF();
 
-    const pageW = doc.internal.pageSize.getWidth();
-    let y = 20;
+      const pageW = doc.internal.pageSize.getWidth();
+      let y = 20;
 
-    // Header
-    doc.setFontSize(18);
-    doc.setFont('helvetica', 'bold');
-    doc.text('NOKHBA RENTAL', pageW / 2, y, { align: 'center' });
-    y += 8;
-    doc.setFontSize(11);
-    doc.setFont('helvetica', 'normal');
-    doc.text(`Contract: ${contract.contract_number}`, pageW / 2, y, { align: 'center' });
-    y += 6;
-    doc.text(`Status: ${statusCfg.label}`, pageW / 2, y, { align: 'center' });
-    y += 14;
+      // Header
+      doc.setFontSize(18);
+      doc.setFont('helvetica', 'bold');
+      doc.text('NOKHBA RENTAL', pageW / 2, y, { align: 'center' });
+      y += 8;
+      doc.setFontSize(11);
+      doc.setFont('helvetica', 'normal');
+      doc.text(`Contract: ${contract.contract_number}`, pageW / 2, y, { align: 'center' });
+      y += 6;
+      doc.text(`Status: ${statusCfg.label}`, pageW / 2, y, { align: 'center' });
+      y += 14;
 
-    // Client
-    doc.setFont('helvetica', 'bold');
-    doc.text('CLIENT', 20, y);
-    doc.setFont('helvetica', 'normal');
-    y += 6;
-    doc.text(`Name: ${contract.clients?.full_name ?? '—'}`, 20, y); y += 5;
-    doc.text(`Phone: ${contract.clients?.phone ?? '—'}`, 20, y); y += 5;
-    doc.text(`Address: ${contract.clients?.address ?? '—'}`, 20, y); y += 5;
-    doc.text(`License: ${contract.clients?.driver_license_number ?? '—'}`, 20, y); y += 12;
+      // Client
+      doc.setFont('helvetica', 'bold');
+      doc.text('CLIENT', 20, y);
+      doc.setFont('helvetica', 'normal');
+      y += 6;
+      doc.text(`Name: ${contract.clients?.full_name ?? '—'}`, 20, y); y += 5;
+      doc.text(`Phone: ${contract.clients?.phone ?? '—'}`, 20, y); y += 5;
+      doc.text(`Address: ${contract.clients?.address ?? '—'}`, 20, y); y += 5;
+      doc.text(`License: ${contract.clients?.driver_license_number ?? '—'}`, 20, y); y += 12;
 
-    // Vehicle
-    doc.setFont('helvetica', 'bold');
-    doc.text('VEHICLE', 20, y);
-    doc.setFont('helvetica', 'normal');
-    y += 6;
-    doc.text(`${contract.vehicles?.brand ?? ''} ${contract.vehicles?.model ?? ''}`, 20, y); y += 5;
-    doc.text(`Year: ${contract.vehicles?.year ?? '—'}`, 20, y); y += 5;
-    doc.text(`Plate: ${contract.vehicles?.license_plate ?? '—'}`, 20, y); y += 12;
+      // Vehicle
+      doc.setFont('helvetica', 'bold');
+      doc.text('VEHICLE', 20, y);
+      doc.setFont('helvetica', 'normal');
+      y += 6;
+      doc.text(`${contract.vehicles?.brand ?? ''} ${contract.vehicles?.model ?? ''}`, 20, y); y += 5;
+      doc.text(`Year: ${contract.vehicles?.year ?? '—'}`, 20, y); y += 5;
+      doc.text(`Plate: ${contract.vehicles?.license_plate ?? '—'}`, 20, y); y += 12;
 
-    // Rental terms
-    doc.setFont('helvetica', 'bold');
-    doc.text('RENTAL TERMS', 20, y);
-    doc.setFont('helvetica', 'normal');
-    y += 6;
-    doc.text(`Start: ${contract.start_date}`, 20, y); y += 5;
-    doc.text(`End:   ${contract.end_date}`, 20, y); y += 5;
-    doc.text(`Duration: ${contract.total_days} day(s)`, 20, y); y += 5;
-    doc.text(`Daily Rate: €${contract.daily_rate}`, 20, y); y += 5;
-    doc.text(`Deposit: €${contract.deposit_amount ?? 0}`, 20, y); y += 5;
-    doc.text(`Total: €${totalAmount}`, 20, y); y += 12;
+      // Rental terms
+      doc.setFont('helvetica', 'bold');
+      doc.text('RENTAL TERMS', 20, y);
+      doc.setFont('helvetica', 'normal');
+      y += 6;
+      doc.text(`Start: ${contract.start_date}`, 20, y); y += 5;
+      doc.text(`End:   ${contract.end_date}`, 20, y); y += 5;
+      doc.text(`Duration: ${contract.total_days} day(s)`, 20, y); y += 5;
+      doc.text(`Daily Rate: €${contract.daily_rate}`, 20, y); y += 5;
+      doc.text(`Deposit: €${contract.deposit_amount ?? 0}`, 20, y); y += 5;
+      doc.text(`Total: €${totalAmount}`, 20, y); y += 12;
 
-    // Signature image
-    if (contract.signature_url) {
-      try {
-        const res = await fetch(contract.signature_url);
-        const blob = await res.blob();
-        const reader = new FileReader();
-        await new Promise<void>((resolve) => {
-          reader.onload = () => {
-            const imgData = reader.result as string;
-            doc.setFont('helvetica', 'bold');
-            doc.text('CLIENT SIGNATURE', 20, y);
-            y += 6;
-            doc.addImage(imgData, 'PNG', 20, y, 80, 30);
-            y += 36;
-            if (contract.signed_at) {
-              doc.setFont('helvetica', 'normal');
-              doc.setFontSize(9);
-              doc.text(`Signed: ${new Date(contract.signed_at).toLocaleString()}`, 20, y);
-            }
-            resolve();
-          };
-          reader.readAsDataURL(blob);
-        });
-      } catch {
-        // signature fetch failed — skip image
+      // Signature image — safe fetch with HTTP error check + canvas PNG re-encoding
+      if (contract.signature_url) {
+        // signatureUrlToPngBase64 validates res.ok and re-encodes via canvas
+        // to guarantee a valid PNG regardless of Supabase storage MIME type.
+        const pngDataUrl = await signatureUrlToPngBase64(contract.signature_url);
+        doc.setFont('helvetica', 'bold');
+        doc.text('CLIENT SIGNATURE', 20, y);
+        y += 6;
+        doc.addImage(pngDataUrl, 'PNG', 20, y, 80, 30);
+        y += 36;
+        if (contract.signed_at) {
+          doc.setFont('helvetica', 'normal');
+          doc.setFontSize(9);
+          doc.text(`Signed: ${new Date(contract.signed_at).toLocaleString()}`, 20, y);
+        }
       }
-    }
 
-    doc.save(`contract-${contract.contract_number}.pdf`);
+      doc.save(`contract-${contract.contract_number}.pdf`);
+    } catch (err: any) {
+      // Surface the error to the user with the full diagnostic message
+      console.error('[PDF] Download failed:', err);
+      alert(`PDF generation failed: ${err?.message ?? 'Unknown error'}`);
+    } finally {
+      setIsPdfLoading(false);
+    }
   };
 
   return (
@@ -239,9 +241,12 @@ export function ContractDetail({ contract, docUrls }: Props) {
             )}
             <button
               onClick={handleDownloadPDF}
-              className="px-5 py-2.5 bg-slate-900 text-white rounded-xl font-bold text-sm hover:bg-slate-800 transition-colors flex items-center gap-2"
+              disabled={isPdfLoading}
+              className="px-5 py-2.5 bg-slate-900 text-white rounded-xl font-bold text-sm hover:bg-slate-800 transition-colors flex items-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed"
             >
-              <Download size={15} /> Download PDF
+              {isPdfLoading
+                ? <><Loader2 size={15} className="animate-spin" /> Generating…</>
+                : <><Download size={15} /> Download PDF</>}
             </button>
           </div>
         ) : (
