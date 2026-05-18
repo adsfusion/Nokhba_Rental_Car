@@ -59,11 +59,12 @@ export function ContractDetail({ contract, docUrls }: Props) {
 
   // Resolve a short-lived signed URL for the signature preview
   useEffect(() => {
-    if (!contract.signature_url) return;
+    const sigUrl = contract.signature_url;
+    if (!sigUrl) return;
     let cancelled = false;
     const loadSig = async () => {
       try {
-        const url = await getSignatureSignedUrl(contract.signature_url);
+        const url = await getSignatureSignedUrl(sigUrl);
         if (!cancelled) setSignedPreviewUrl(url);
         const b64 = await signatureUrlToPngBase64(url);
         if (!cancelled) setSignatureData(b64);
