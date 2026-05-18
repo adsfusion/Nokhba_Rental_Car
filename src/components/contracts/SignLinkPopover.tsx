@@ -33,7 +33,7 @@ export function SignLinkPopover({ contractId, onClose }: Props) {
       <motion.div
         initial={{ opacity: 0, scale: 0.95 }}
         animate={{ opacity: 1, scale: 1 }}
-        className="bg-white rounded-3xl p-6 w-full max-w-sm shadow-2xl"
+        className="bg-white rounded-3xl p-6 w-full max-w-[384px] shadow-2xl"
       >
         <div className="flex items-start justify-between mb-5">
           <div>

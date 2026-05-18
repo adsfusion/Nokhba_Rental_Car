@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
+import { useParams } from 'next/navigation';
 import { Plus, FileText, PenLine, ClipboardCheck, Settings, Send } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { SignLinkPopover } from './SignLinkPopover';
@@ -20,6 +21,10 @@ const STATUS_CONFIG: Record<string, { label: string; className: string }> = {
 type Props = { initialContracts: ContractWithDetails[] };
 
 export function ContractList({ initialContracts }: Props) {
+  const params = useParams();
+  const tenantSlug = params?.tenantSlug as string | undefined;
+  const prefix = tenantSlug ? `/${tenantSlug}` : '';
+
   const [sendLinkContract, setSendLinkContract] = useState<ContractWithDetails | null>(null);
   const [returningContract, setReturningContract] = useState<ContractWithDetails | null>(null);
 
@@ -45,7 +50,7 @@ export function ContractList({ initialContracts }: Props) {
             <p className="text-slate-500 text-sm">Manage your rental agreements and e-signatures.</p>
           </div>
           <Link
-            href="/contracts/new"
+            href={`${prefix}/contracts/new`}
             className="px-4 py-2 bg-slate-900 text-white rounded-xl text-sm font-semibold hover:bg-slate-800 transition-all shadow-lg shadow-slate-900/10 flex items-center gap-2 self-start sm:self-auto"
           >
             <Plus size={16} />
@@ -93,7 +98,7 @@ export function ContractList({ initialContracts }: Props) {
                   >
                     {/* Clickable row data → Contract Hub */}
                     <Link
-                      href={`/contracts/${contract.id}`}
+                      href={`${prefix}/contracts/${contract.id}`}
                       className="grid grid-cols-2 md:grid-cols-4 gap-6 flex-1 min-w-0"
                     >
                       <div>
@@ -128,14 +133,14 @@ export function ContractList({ initialContracts }: Props) {
                     {/* Action buttons — navigate to edit pages */}
                     <div className="flex flex-col gap-2 shrink-0">
                       <Link
-                        href={`/contracts/${contract.id}/edit`}
+                        href={`${prefix}/contracts/${contract.id}/edit`}
                         className="px-4 py-2 bg-white border border-slate-200 text-slate-700 rounded-xl text-sm font-semibold hover:bg-slate-50 transition-all flex items-center justify-center gap-2 whitespace-nowrap"
                       >
                         <Settings size={15} />
                         Edit Contract
                       </Link>
                       <Link
-                        href={`/clients/${contract.client_id}/edit`}
+                        href={`${prefix}/clients/${contract.client_id}/edit`}
                         className="px-4 py-2 bg-white border border-slate-200 text-slate-700 rounded-xl text-sm font-semibold hover:bg-slate-50 transition-all flex items-center justify-center gap-2 whitespace-nowrap"
                       >
                         <PenLine size={15} />

@@ -1,19 +1,19 @@
 'use client';
 
-import { useState } from 'react';
 import Link from 'next/link';
+import { useParams } from 'next/navigation';
 import { Plus, Users, User, Phone, IdCard, ArrowRight } from 'lucide-react';
 import type { Client } from '@/types';
-import { AddClientModal } from './AddClientModal';
 
 type Props = { clients: Client[] };
 
 export function ClientTable({ clients }: Props) {
-  const [isAddOpen, setIsAddOpen] = useState(false);
+  const params = useParams();
+  const tenantSlug = params?.tenantSlug as string | undefined;
+  const prefix = tenantSlug ? `/${tenantSlug}` : '';
 
   return (
     <>
-      {isAddOpen && <AddClientModal onClose={() => setIsAddOpen(false)} />}
 
       <div className="space-y-6">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
@@ -21,13 +21,13 @@ export function ClientTable({ clients }: Props) {
             <h2 className="text-2xl font-bold text-slate-900 tracking-tight">Clients</h2>
             <p className="text-slate-500 text-sm">Manage your registered rental clients.</p>
           </div>
-          <button
-            onClick={() => setIsAddOpen(true)}
+          <Link
+            href={`${prefix}/clients/new`}
             className="px-4 py-2 bg-slate-900 text-white rounded-xl text-sm font-semibold hover:bg-slate-800 transition-all shadow-lg shadow-slate-900/10 flex items-center gap-2 self-start sm:self-auto"
           >
             <Plus size={16} />
             Add Client
-          </button>
+          </Link>
         </div>
 
         <div className="bg-surface-container-lowest border border-slate-200 rounded-3xl overflow-hidden shadow-sm">
@@ -53,7 +53,7 @@ export function ClientTable({ clients }: Props) {
               {clients.map((client) => (
                 <Link
                   key={client.id}
-                  href={`/clients/${client.id}`}
+                  href={`${prefix}/clients/${client.id}`}
                   className="p-5 flex flex-col sm:flex-row sm:items-center gap-4 hover:bg-slate-50/70 transition-colors group"
                 >
                   <div className="w-10 h-10 rounded-xl bg-slate-100 flex items-center justify-center text-slate-400 shrink-0 group-hover:bg-slate-900 group-hover:text-white transition-colors">

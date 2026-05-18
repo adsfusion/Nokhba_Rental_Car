@@ -1,7 +1,8 @@
 import Link from 'next/link';
 import { Car, Users, FileText, Bell } from 'lucide-react';
 
-export default function DashboardPage() {
+export default async function DashboardPage({ params }: { params: Promise<{ tenantSlug: string }> }) {
+  const { tenantSlug } = await params;
   const stats = [
     { label: 'Active Contracts', value: '24', trend: '+12%', color: 'text-blue-600' },
     { label: 'Available Cars', value: '8', trend: '32 total', color: 'text-green-600' },
@@ -36,7 +37,7 @@ export default function DashboardPage() {
             Export Reports
           </button>
           <Link
-            href="/fleet"
+            href={`/${tenantSlug}/fleet`}
             className="px-4 py-2 bg-slate-900 text-white rounded-xl text-sm font-semibold hover:bg-slate-800 transition-colors shadow-sm flex items-center gap-2"
           >
             <Car size={16} />

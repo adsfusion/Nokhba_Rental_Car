@@ -2,7 +2,7 @@
 
 import { useTransition, useState, useRef } from 'react';
 import { useForm } from 'react-hook-form';
-import { useRouter } from 'next/navigation';
+import { useRouter, useParams } from 'next/navigation';
 import { ArrowLeft, AlertCircle, Loader2, PenLine, RefreshCcw, Send } from 'lucide-react';
 import SignatureCanvas from 'react-signature-canvas';
 import { updateContract } from '@/lib/actions/contracts';
@@ -24,6 +24,9 @@ const inputClass =
 
 export function EditContractPage({ contract }: { contract: ContractWithDetails }) {
   const router = useRouter();
+  const params = useParams();
+  const tenantSlug = params?.tenantSlug as string;
+  const prefix = tenantSlug ? `/${tenantSlug}` : '';
   const [isPending, startTransition] = useTransition();
   const { addNotification } = useNotifications();
 
@@ -61,17 +64,17 @@ export function EditContractPage({ contract }: { contract: ContractWithDetails }
         status: 'pending_signature',
       });
       addNotification('Contract Updated', 'Signature invalidated — client must re-sign.', 'info');
-      router.push(`/contracts/${contract.id}`);
+      router.push(`${prefix}/contracts/${contract.id}`);
     });
   };
 
   return (
-    <div className="max-w-2xl mx-auto space-y-6">
+    <div className="max-w-[672px] mx-auto space-y-6">
       {/* Header */}
       <div className="flex items-center gap-3">
         <button
           type="button"
-          onClick={() => router.push(`/contracts/${contract.id}`)}
+          onClick={() => router.push(`${prefix}/contracts/${contract.id}`)}
           className="p-2 rounded-xl hover:bg-slate-100 transition-colors text-slate-500 hover:text-slate-900"
         >
           <ArrowLeft size={20} />
@@ -133,7 +136,7 @@ export function EditContractPage({ contract }: { contract: ContractWithDetails }
           <div className="pt-4 flex items-center justify-end gap-3 border-t border-slate-100">
             <button
               type="button"
-              onClick={() => router.push(`/contracts/${contract.id}`)}
+              onClick={() => router.push(`${prefix}/contracts/${contract.id}`)}
               className="px-5 py-2.5 text-slate-500 hover:text-slate-900 font-semibold transition-colors"
             >
               Cancel
@@ -150,7 +153,7 @@ export function EditContractPage({ contract }: { contract: ContractWithDetails }
       </div>
 
       {/* Signature section */}
-      <SignatureSectionPage contractId={contract.id} onSigned={() => router.push(`/contracts/${contract.id}`)} />
+      <SignatureSectionPage contractId={contract.id} onSigned={() => router.push(`${prefix}/contracts/${contract.id}`)} />
     </div>
   );
 }

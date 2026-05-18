@@ -9,7 +9,7 @@ export default async function LoginPage({
   const { error } = await searchParams;
 
   return (
-    <div className="w-full max-w-md">
+    <div className="w-full max-w-[448px]">
       <div className="bg-white rounded-2xl shadow-xl shadow-slate-900/10 border border-slate-200 p-8">
         <div className="flex flex-col items-center mb-8">
           <div className="w-12 h-12 bg-slate-900 rounded-xl flex items-center justify-center mb-4">

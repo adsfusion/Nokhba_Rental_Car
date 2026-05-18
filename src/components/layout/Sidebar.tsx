@@ -1,14 +1,19 @@
 'use client';
 
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { usePathname, useParams } from 'next/navigation';
 import {
   Car,
   Users,
   FileText,
   LayoutDashboard,
-  Settings,
   LogOut,
+  CalendarDays,
+  CalendarCheck,
+  Receipt,
+  CreditCard,
+  HelpCircle,
+  Wallet
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { logout } from '@/lib/actions/auth';
@@ -21,20 +26,30 @@ type NavItem = {
   badge?: string;
 };
 
-const mainNav: NavItem[] = [
-  { title: 'Dashboard', icon: LayoutDashboard, href: '/dashboard' },
-  { title: 'Fleet', icon: Car, href: '/fleet' },
-  { title: 'Clients', icon: Users, href: '/clients' },
-  { title: 'Contracts', icon: FileText, href: '/contracts' },
-];
-
-const secondaryNav: NavItem[] = [
-  { title: 'Settings', icon: Settings, href: '/settings' },
-];
-
 export function Sidebar() {
   const { open: isOpen, close } = useSidebar();
   const pathname = usePathname();
+  const params = useParams();
+  const tenantSlug = params?.tenantSlug as string | undefined;
+  
+  // ENFORCE STRICT SLUG ROUTING
+  const prefix = `/${tenantSlug}`;
+
+  const mainNav: NavItem[] = [
+    { title: 'Dashboard', icon: LayoutDashboard, href: `${prefix}/dashboard` },
+    { title: 'Fleet', icon: Car, href: `${prefix}/fleet` },
+    { title: 'Availability', icon: CalendarDays, href: `${prefix}/availability` },
+    { title: 'Clients', icon: Users, href: `${prefix}/clients` },
+    { title: 'Reservations', icon: CalendarCheck, href: `${prefix}/reservations` },
+    { title: 'Contracts', icon: FileText, href: `${prefix}/contracts` },
+    { title: 'Invoices', icon: Receipt, href: `${prefix}/invoices` },
+    { title: 'Payments', icon: CreditCard, href: `${prefix}/payments` },
+  ];
+
+  const secondaryNav: NavItem[] = [
+    { title: 'Help Center', icon: HelpCircle, href: `${prefix}/help` },
+    { title: 'Subscription', icon: Wallet, href: `${prefix}/subscription` },
+  ];
 
   return (
     <>

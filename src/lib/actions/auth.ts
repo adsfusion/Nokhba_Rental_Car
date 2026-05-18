@@ -42,3 +42,33 @@ export async function getProfile() {
 
   return data;
 }
+
+export async function saasAdminLogin(formData: FormData) {
+  const email = formData.get('email') as string;
+  const password = formData.get('password') as string;
+
+  const supabase = await createSupabaseServerClient();
+  const { error } = await supabase.auth.signInWithPassword({ email, password });
+
+  if (error) {
+    redirect(`/saas-admin/login?error=${encodeURIComponent(error.message)}`);
+  }
+
+  const { data: { user } } = await supabase.auth.getUser();
+  if (user) {
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('role')
+      .eq('id', user.id)
+      .single();
+
+    if (profile?.role === 'super_admin') {
+      redirect('/saas-admin/overview');
+    } else {
+      await supabase.auth.signOut();
+      redirect(`/saas-admin/login?error=${encodeURIComponent('Unauthorized: Access restricted to Platform Administrators.')}`);
+    }
+  } else {
+    redirect(`/saas-admin/login?error=${encodeURIComponent('User not found.')}`);
+  }
+}

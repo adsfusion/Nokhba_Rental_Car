@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
+import { useParams } from 'next/navigation';
 import {
   ArrowLeft, Download, Send, Settings, User, Car, Calendar,
   DollarSign, FileImage, FileText, CheckCircle2, Clock, ExternalLink,
@@ -20,24 +21,27 @@ type Props = {
 };
 
 const STATUS_CONFIG: Record<string, { label: string; className: string }> = {
-  draft:             { label: 'Draft',             className: 'bg-slate-100 text-slate-600' },
+  draft: { label: 'Draft', className: 'bg-slate-100 text-slate-600' },
   pending_signature: { label: 'Pending Signature', className: 'bg-amber-100 text-amber-700' },
-  active:            { label: 'Active',            className: 'bg-green-100 text-green-700' },
-  signed:            { label: 'Signed',            className: 'bg-blue-100 text-blue-700' },
-  completed:         { label: 'Completed',         className: 'bg-slate-100 text-slate-500' },
-  cancelled:         { label: 'Cancelled',         className: 'bg-red-100 text-red-600' },
+  active: { label: 'Active', className: 'bg-green-100 text-green-700' },
+  signed: { label: 'Signed', className: 'bg-blue-100 text-blue-700' },
+  completed: { label: 'Completed', className: 'bg-slate-100 text-slate-500' },
+  cancelled: { label: 'Cancelled', className: 'bg-red-100 text-red-600' },
 };
 
 const DOC_LABELS: Record<DocumentType, string> = {
-  id_front:      'ID Card — Front',
-  id_back:       'ID Card — Back',
+  id_front: 'ID Card — Front',
+  id_back: 'ID Card — Back',
   license_front: 'License — Front',
-  license_back:  'License — Back',
+  license_back: 'License — Back',
 };
 
 const ALL_DOC_TYPES: DocumentType[] = ['id_front', 'id_back', 'license_front', 'license_back'];
 
 export function ContractDetail({ contract, docUrls }: Props) {
+  const params = useParams();
+  const tenantSlug = params?.tenantSlug as string;
+  const prefix = tenantSlug ? `/${tenantSlug}` : '';
   const [showSignLink, setShowSignLink] = useState(false);
   const [isPdfLoading, setIsPdfLoading] = useState(false);
   const [signedPreviewUrl, setSignedPreviewUrl] = useState<string | null>(null);
@@ -51,7 +55,7 @@ export function ContractDetail({ contract, docUrls }: Props) {
   const isSigned = !!contract.signature_url;
   const totalAmount = (contract.daily_rate ?? 0) * (contract.total_days ?? 1);
 
-  // Resolve a short-lived signed URL for the signature preview (and PDF use)
+  // Resolve a short-lived signed URL for the signature preview
   useEffect(() => {
     if (!contract.signature_url) return;
     let cancelled = false;
@@ -65,81 +69,220 @@ export function ContractDetail({ contract, docUrls }: Props) {
     if (isPdfLoading) return;
     setIsPdfLoading(true);
     try {
+      // 1. SECURE SIGNATURE FETCH
+      let signaturePng: string | undefined;
+      if (contract.signature_url) {
+        const signedUrl = await getSignatureSignedUrl(contract.signature_url);
+        signaturePng = await signatureUrlToPngBase64(signedUrl);
+      }
+
+      // 2. GENERATE COMPLEX FRENCH PDF
       const { default: jsPDF } = await import('jspdf');
       const doc = new jsPDF();
 
-      const pageW = doc.internal.pageSize.getWidth();
-      let y = 20;
+      doc.setFont("helvetica");
 
-      // Header
-      doc.setFontSize(18);
-      doc.setFont('helvetica', 'bold');
-      doc.text('NOKHBA RENTAL', pageW / 2, y, { align: 'center' });
-      y += 8;
-      doc.setFontSize(11);
-      doc.setFont('helvetica', 'normal');
-      doc.text(`Contract: ${contract.contract_number}`, pageW / 2, y, { align: 'center' });
-      y += 6;
-      doc.text(`Status: ${statusCfg.label}`, pageW / 2, y, { align: 'center' });
-      y += 14;
+      // --- Header ---
+      doc.setFontSize(24);
+      doc.setFont("helvetica", "bold");
+      doc.setTextColor(59, 130, 246);
+      doc.text("NOKHBA", 10, 15);
+      doc.setTextColor(239, 68, 68);
+      doc.text("RENTAL", 45, 15);
 
-      // Client
-      doc.setFont('helvetica', 'bold');
-      doc.text('CLIENT', 20, y);
-      doc.setFont('helvetica', 'normal');
-      y += 6;
-      doc.text(`Name: ${contract.clients?.full_name ?? '—'}`, 20, y); y += 5;
-      doc.text(`Phone: ${contract.clients?.phone ?? '—'}`, 20, y); y += 5;
-      doc.text(`Address: ${contract.clients?.address ?? '—'}`, 20, y); y += 5;
-      doc.text(`License: ${contract.clients?.driver_license_number ?? '—'}`, 20, y); y += 12;
+      doc.setTextColor(0, 0, 0);
+      doc.setFontSize(14);
+      doc.setFont("helvetica", "bold");
+      doc.text("Contrat de location de véhicule entre particuliers", 80, 15);
 
-      // Vehicle
-      doc.setFont('helvetica', 'bold');
-      doc.text('VEHICLE', 20, y);
-      doc.setFont('helvetica', 'normal');
-      y += 6;
-      doc.text(`${contract.vehicles?.brand ?? ''} ${contract.vehicles?.model ?? ''}`, 20, y); y += 5;
-      doc.text(`Year: ${contract.vehicles?.year ?? '—'}`, 20, y); y += 5;
-      doc.text(`Plate: ${contract.vehicles?.license_plate ?? '—'}`, 20, y); y += 12;
+      // Helper for drawing bounding boxes and titles
+      const drawBox = (x: number, y: number, w: number, h: number, title: string) => {
+        doc.setLineWidth(0.3);
+        doc.setDrawColor(150, 150, 150);
+        doc.rect(x, y, w, h);
+        doc.setFontSize(10);
+        doc.setFont("helvetica", "bold");
+        doc.text(title, x + 2, y + 4);
+        doc.setDrawColor(220, 220, 220);
+        doc.line(x, y + 6, x + w, y + 6);
+      };
 
-      // Rental terms
-      doc.setFont('helvetica', 'bold');
-      doc.text('RENTAL TERMS', 20, y);
-      doc.setFont('helvetica', 'normal');
-      y += 6;
-      doc.text(`Start: ${contract.start_date}`, 20, y); y += 5;
-      doc.text(`End:   ${contract.end_date}`, 20, y); y += 5;
-      doc.text(`Duration: ${contract.total_days} day(s)`, 20, y); y += 5;
-      doc.text(`Daily Rate: €${contract.daily_rate}`, 20, y); y += 5;
-      doc.text(`Deposit: €${contract.deposit_amount ?? 0}`, 20, y); y += 5;
-      doc.text(`Total: €${totalAmount}`, 20, y); y += 12;
+      // Section 1: Le locataire
+      drawBox(10, 20, 90, 65, "Le locataire");
+      doc.setFont("helvetica", "normal");
+      doc.setFontSize(9);
+      doc.text("Prénom et Nom :", 12, 30);
+      doc.text(contract.clients?.full_name || ".......................................................", 38, 30);
 
-      // Signature image:
-      // 1. Call getSignatureSignedUrl() — a Server Action that uses the
-      //    service-role key to generate a fresh 60-second signed URL from
-      //    Supabase Storage (private bucket).  This replaces getPublicUrl()
-      //    which returns a URL that 400/403s on private buckets.
-      // 2. Pass the signed URL to signatureUrlToPngBase64() which validates
-      //    the HTTP response and re-encodes the image to PNG via canvas,
-      //    eliminating any jsPDF "wrong PNG signature" crash.
-      if (contract.signature_url) {
-        const signedUrl = await getSignatureSignedUrl(contract.signature_url);
-        const pngDataUrl = await signatureUrlToPngBase64(signedUrl);
-        doc.setFont('helvetica', 'bold');
-        doc.text('CLIENT SIGNATURE', 20, y);
-        y += 6;
-        doc.addImage(pngDataUrl, 'PNG', 20, y, 80, 30);
-        y += 36;
-        if (contract.signed_at) {
-          doc.setFont('helvetica', 'normal');
-          doc.setFontSize(9);
-          doc.text(`Signed: ${new Date(contract.signed_at).toLocaleString()}`, 20, y);
-        }
+      doc.text("Téléphone :", 12, 36);
+      doc.text(contract.clients?.phone || ".......................................................", 30, 36);
+
+      doc.text("Adresse :", 12, 42);
+      doc.text(contract.clients?.address || ".......................................................", 27, 42);
+      doc.setFontSize(7);
+      doc.setFont("helvetica", "italic");
+      doc.text("(à confirmer par justif. de domicile)", 12, 45);
+
+      doc.setFontSize(9);
+      doc.setFont("helvetica", "normal");
+      doc.text("Permis de conduire no :", 12, 57);
+      doc.text(contract.clients?.driver_license_number || ".......................................................", 45, 57);
+
+      doc.rect(12, 67, 3, 3);
+      doc.text("d'autres conducteurs sont autorisés à conduire le véhicule", 17, 70);
+      doc.setFontSize(7);
+      doc.setFont("helvetica", "italic");
+      doc.text("lister ces conducteurs sur une feuille séparée", 12, 74);
+      doc.text("Le conducteur doit avoir au moins 21 ans et 2 ans de permis.", 12, 81);
+
+      // Section 2: La Location
+      drawBox(10, 88, 90, 30, "La Location");
+      doc.setFont("helvetica", "normal");
+      doc.setFontSize(9);
+      doc.text("Début de location :", 12, 98);
+      doc.text(new Date(contract.start_date).toLocaleDateString() || "......................................", 58, 98);
+
+      doc.text("Fin de location :", 12, 104);
+      doc.text(new Date(contract.end_date).toLocaleDateString() || "......................................", 58, 104);
+
+      doc.text("Durée :", 12, 110);
+      doc.text(`${contract.total_days || "......"} jour(s)`, 45, 110);
+
+      doc.text("Prix total de la location :", 12, 116);
+      doc.text(`${totalAmount} €`, 48, 116);
+
+      // Section 3: Le Propriétaire
+      drawBox(105, 20, 95, 25, "Le Propriétaire");
+      doc.setFont("helvetica", "normal");
+      doc.setFontSize(9);
+      doc.text("Prénom et Nom :", 107, 30);
+      doc.text("NOKHBA RENTAL", 135, 30);
+      doc.text("Téléphone(s) :", 107, 36);
+      doc.text("+212 6 00 00 00 00", 130, 36);
+
+      // Section 4: Le Véhicule loué
+      drawBox(105, 48, 95, 25, "Le Véhicule loué");
+      doc.setFont("helvetica", "normal");
+      doc.setFontSize(9);
+      doc.text("Marque et modèle :", 107, 58);
+      doc.text(`${contract.vehicles?.brand || ''} ${contract.vehicles?.model || ''}`, 135, 58);
+      doc.text("Immatriculation :", 107, 64);
+      doc.text(contract.vehicles?.license_plate || "......................................", 132, 64);
+      doc.text("Année :", 107, 70);
+      doc.text(contract.vehicles?.year?.toString() || "...........................", 150, 70);
+
+      // Section 5: Assurance, Assistance, dépôt de garantie
+      drawBox(105, 76, 95, 55, "Assurance, Assistance, dépôt de garantie");
+      doc.setFont("helvetica", "normal");
+      doc.setFontSize(9);
+      doc.text("Dépôt de garantie : chèque de", 107, 86);
+      doc.text(contract.deposit_amount?.toString() || "............", 152, 86);
+      doc.text("€", 170, 86);
+
+      doc.text("En cas d'accident, vol ou panne :", 107, 97);
+      doc.text("- le locataire doit prévenir le propriétaire, établir un constat", 107, 100);
+      doc.text("amiable en cas d'accident, un dépôt de plainte au commissariat.", 107, 103);
+      doc.text("- Prévenez dès que possible l'assurance.", 107, 106);
+
+      // Section 6: État du véhicule avant la location
+      drawBox(10, 135, 190, 65, "État du véhicule avant la location");
+
+      // Car Diagram Placeholder
+      doc.setDrawColor(200, 200, 200);
+      doc.rect(12, 145, 85, 45);
+      doc.setFont("helvetica", "normal");
+      doc.setFontSize(9);
+      doc.setTextColor(150, 150, 150);
+      doc.text("Schéma carrosserie (Placeholder)", 30, 168);
+      doc.setFontSize(7);
+      doc.setFont("helvetica", "italic");
+      doc.setTextColor(0, 0, 0);
+      doc.text("noter sur ce schéma les accrocs sur la carrosserie", 22, 195);
+
+      doc.setFontSize(9);
+      doc.setFont("helvetica", "normal");
+      doc.text("Compteur km au départ :", 105, 145);
+      // @ts-ignore - dynamic json field
+      doc.text(contract.extra_data?.vehicle_start_mileage?.toString() || "................", 145, 145);
+      doc.text("km", 165, 145);
+
+      doc.text("Carburant :", 145, 155);
+      doc.rect(165, 148, 25, 10);
+      doc.setFontSize(7);
+      doc.setTextColor(150, 150, 150);
+      doc.text("Jauge", 172, 154);
+      doc.setTextColor(0, 0, 0);
+
+      doc.setFontSize(9);
+      doc.text("État extérieur :", 105, 165);
+      doc.text(".........................................................................................", 105, 172);
+
+      doc.text("État intérieur :", 105, 185);
+      doc.text(".........................................................................................", 105, 192);
+
+      // Section 7: Clauses and signatures
+      doc.setDrawColor(150, 150, 150);
+      doc.rect(10, 205, 190, 28);
+
+      doc.rect(12, 208, 3, 3);
+      doc.setFont("helvetica", "normal");
+      doc.setFontSize(8);
+      doc.text("Les clauses de location s'appliquent (recommandé).", 17, 211);
+
+      doc.setFontSize(9);
+      doc.text("Signature du locataire :", 20, 225);
+      // Inject secure signature
+      if (signaturePng) {
+        doc.addImage(signaturePng, "PNG", 60, 220, 25, 10);
       }
+      doc.text("Signature du propriétaire :", 110, 225);
 
-      doc.save(`contract-${contract.contract_number}.pdf`);
+      // Section 8: Remplir au retour
+      doc.rect(10, 238, 190, 50);
+      doc.setFillColor(240, 240, 240);
+      doc.rect(10, 238, 8, 50, 'F');
+      doc.setDrawColor(150, 150, 150);
+      doc.rect(10, 238, 190, 50, 'S');
+
+      doc.setFontSize(10);
+      doc.setFont("helvetica", "bold");
+      doc.setTextColor(150, 150, 150);
+      doc.text("remplir au retour", 16, 282, { angle: 90 });
+
+      doc.setTextColor(0, 0, 0);
+      doc.setFont("helvetica", "normal");
+      doc.setFontSize(9);
+
+      doc.text("Date et heure réelles de fin de location :", 20, 245);
+      doc.text(contract.returned_at ? new Date(contract.returned_at).toLocaleDateString() : "..........................................", 75, 245);
+
+      doc.text("Compteur km au retour :", 20, 251);
+      doc.text(contract.return_mileage?.toString() || "...........................", 55, 251);
+
+      doc.text("Carburant au retour :", 145, 245);
+      doc.setDrawColor(200, 200, 200);
+      doc.rect(175, 239, 20, 8);
+      doc.setFontSize(6);
+      doc.setTextColor(150, 150, 150);
+      doc.text(contract.return_fuel_level || "Jauge", 180, 244);
+      doc.setTextColor(0, 0, 0);
+
+      doc.setDrawColor(150, 150, 150);
+      doc.setFontSize(9);
+      doc.text("Compte-rendu final de la location :", 20, 268);
+
+      doc.rect(70, 265, 3, 3);
+      doc.text("Aucun dommage - dépôt de garantie restitué.", 75, 268);
+
+      doc.rect(70, 271, 3, 3);
+      doc.text("Dommages légers - dépôt de garantie restitué contre paiement.", 75, 274);
+
+      doc.rect(70, 277, 3, 3);
+      doc.setFont("helvetica", "bold");
+      doc.text("Dommages importants - dépôt de garantie encaissé ou conservé", 75, 280);
+
+      doc.save(`NOKHBA-${contract.contract_number}.pdf`);
     } catch (err: any) {
-      // Surface the error to the user with the full diagnostic message
       console.error('[PDF] Download failed:', err);
       alert(`PDF generation failed: ${err?.message ?? 'Unknown error'}`);
     } finally {
@@ -148,12 +291,12 @@ export function ContractDetail({ contract, docUrls }: Props) {
   };
 
   return (
-    <div className="max-w-4xl mx-auto space-y-6">
+    <div className="max-w-[896px] mx-auto space-y-6">
       {/* Header bar */}
       <div className="flex items-center justify-between gap-4 flex-wrap">
         <div className="flex items-center gap-3">
           <Link
-            href="/contracts"
+            href={`${prefix}/contracts`}
             className="p-2 rounded-xl hover:bg-slate-100 transition-colors text-slate-500 hover:text-slate-900"
           >
             <ArrowLeft size={20} />
@@ -170,7 +313,7 @@ export function ContractDetail({ contract, docUrls }: Props) {
             {statusCfg.label}
           </span>
           <Link
-            href={`/contracts/${contract.id}/edit`}
+            href={`${prefix}/contracts/${contract.id}/edit`}
             className="px-4 py-2 bg-white border border-slate-200 text-slate-700 rounded-xl text-sm font-semibold hover:bg-slate-50 transition-all flex items-center gap-2"
           >
             <Settings size={15} /> Edit Contract

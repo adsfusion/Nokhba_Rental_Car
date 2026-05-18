@@ -23,7 +23,7 @@ export function SignatureModal({ onSave, onCancel }: Props) {
       <motion.div
         initial={{ opacity: 0, scale: 0.95 }}
         animate={{ opacity: 1, scale: 1 }}
-        className="bg-white rounded-3xl p-6 w-full max-w-lg shadow-2xl"
+        className="bg-white rounded-3xl p-6 w-full max-w-[512px] shadow-2xl"
       >
         <div className="flex items-center justify-between mb-4">
           <h3 className="text-lg font-bold text-slate-900">Client Signature</h3>

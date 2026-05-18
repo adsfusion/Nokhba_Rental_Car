@@ -1,14 +1,14 @@
 'use client';
 
 import { useState, useEffect, useTransition, useRef } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useParams } from 'next/navigation';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Loader2, Download, UserCircle, Car, ShieldCheck, CreditCard, ChevronRight, Check, QrCode, IdCard as IdCardIcon } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { QRCodeCanvas } from 'qrcode.react';
 import SignatureCanvas from 'react-signature-canvas';
-import { generateAdvancedPDF } from '@/lib/pdfGenerator';
+import { generateNokhbaPDF } from '@/lib/pdfGenerator';
 import {
   ArrowLeft, Calendar, CheckCircle2, UserPlus, Clock, Phone,
   IdCard, Plus, Trash2, ImagePlus, PenLine, Euro,
@@ -29,6 +29,7 @@ import type { Vehicle, Client } from '@/types';
 
 type Props = { vehicles: Vehicle[]; clients: Client[] };
 
+
 const STEPS = [
   { id: 1, name: 'Selection', icon: UserPlus },
   { id: 2, name: 'Terms', icon: Calendar },
@@ -40,6 +41,8 @@ const inputClass =
 
 export function ContractWizard({ vehicles, clients }: Props) {
   const router = useRouter();
+  const params = useParams();
+  const tenantSlug = params?.tenantSlug as string;
   const { addNotification } = useNotifications();
   const [isPending, startTransition] = useTransition();
   const [isPdfLoading, setIsPdfLoading] = useState(false);
@@ -279,36 +282,44 @@ export function ContractWizard({ vehicles, clients }: Props) {
       // canvas to guarantee data:image/png;base64 regardless of storage format.
       const signatureBase64 = await signatureUrlToPngBase64(contractData.signature);
 
-      const doc = generateAdvancedPDF({
-        clientName: frozenClient?.full_name || frozenClient?.name,
-        clientPhone: frozenClient?.phone,
-        clientAddress: frozenClient?.address,
-        clientBirthDate: frozenClient?.id_expiry_date,
-        licenseNumber: frozenClient?.driver_license_number,
-        startDate: new Date(contractData.startDate).toLocaleDateString(),
-        endDate: new Date(contractData.endDate).toLocaleDateString(),
-        rentalDurationDays,
-        dailyRate: frozenVehicle?.daily_rate,
-        vehicleMake: frozenVehicle?.brand,
-        vehicleModel: frozenVehicle?.model,
-        vehiclePlate: frozenVehicle?.license_plate,
-        vehicleRegistrationDate: frozenVehicle?.year,
-        deposit: contractData.deposit || 200,
-        vehicleStartMileage: frozenVehicle?.mileage,
-        signature: signatureBase64,
+      const totalAmount = (contractData.dailyRate || 0) * rentalDurationDays + (contractData.deposit || 0);
+
+      const doc = generateNokhbaPDF({
+        contractNumber: contractData.contractId || '—',
+        issueDate:      new Date().toLocaleDateString('fr-FR'),
+        status:         'Signé / Signed',
+
+        clientName:    frozenClient?.full_name || frozenClient?.name || '—',
+        clientPhone:   frozenClient?.phone || '—',
+        clientAddress: frozenClient?.address || '—',
+        licenseNumber: frozenClient?.driver_license_number || '—',
+
+        vehicleBrand:  frozenVehicle?.brand || '—',
+        vehicleModel:  frozenVehicle?.model || '—',
+        vehiclePlate:  frozenVehicle?.license_plate || '—',
+        vehicleYear:   frozenVehicle?.year,
+
+        startDate:    new Date(contractData.startDate).toLocaleDateString('fr-FR'),
+        endDate:      new Date(contractData.endDate).toLocaleDateString('fr-FR'),
+        totalDays:    rentalDurationDays,
+        dailyRate:    contractData.dailyRate || 0,
+        depositAmount: contractData.deposit || 0,
+        totalAmount,
+
+        signaturePng: signatureBase64,
       });
 
       const pdfBlob = doc.output('blob');
       const blobUrl = URL.createObjectURL(pdfBlob);
       const a = document.createElement('a');
       a.href = blobUrl;
-      a.download = `Contrat_Location_${frozenClient?.full_name || 'Client'}.pdf`;
+      a.download = `NOKHBA-${contractData.contractId || frozenClient?.full_name || 'Contract'}.pdf`;
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
       URL.revokeObjectURL(blobUrl);
 
-      addNotification('Success', 'PDF downloaded with embedded signature.', 'success');
+      addNotification('Success', 'Premium PDF downloaded with embedded signature.', 'success');
     } catch (err: any) {
       addNotification('Error', 'PDF generation failed: ' + err.message, 'error');
     } finally {
@@ -319,7 +330,7 @@ export function ContractWizard({ vehicles, clients }: Props) {
   // ── Screen: Awaiting Docs & Signature ─────────────────────────────────────
   if (isSubmitted && contractData && signingMode === null) {
     return (
-      <div className="max-w-2xl mx-auto text-center space-y-6 py-12">
+      <div className="max-w-[672px] mx-auto text-center space-y-6 py-12">
         <div className="w-24 h-24 bg-amber-50 text-amber-500 border-2 border-amber-200 rounded-full flex items-center justify-center mx-auto shadow-lg">
           <Clock size={44} />
         </div>
@@ -374,7 +385,7 @@ export function ContractWizard({ vehicles, clients }: Props) {
       { key: 'license_back',  label: 'Driver License — Back' },
     ];
     return (
-      <div className="max-w-xl mx-auto space-y-6 py-12">
+      <div className="max-w-[576px] mx-auto space-y-6 py-12">
         <button
           type="button"
           onClick={() => setSigningMode(null)}
@@ -497,7 +508,7 @@ export function ContractWizard({ vehicles, clients }: Props) {
   if (isSubmitted && contractData && signingMode === 'remote') {
     const isSigned = !!contractData.signature;
     return (
-      <div className="max-w-2xl mx-auto text-center space-y-6 py-12">
+      <div className="max-w-[672px] mx-auto text-center space-y-6 py-12">
         <div className={cn(
           'w-24 h-24 rounded-full flex items-center justify-center mx-auto shadow-xl',
           isSigned ? 'bg-blue-100 text-blue-600 shadow-blue-900/10' : 'bg-amber-50 text-amber-500 shadow-amber-900/10'
@@ -547,7 +558,7 @@ export function ContractWizard({ vehicles, clients }: Props) {
           </button>
           <button
             type="button"
-            onClick={() => router.push('/contracts')}
+            onClick={() => router.push(`/${tenantSlug}/contracts`)}
             className="px-8 py-3 bg-slate-900 text-white rounded-xl font-bold shadow-lg shadow-slate-900/10 hover:bg-slate-800 transition-all flex items-center gap-2"
           >
             Done <ChevronRight size={18} />
@@ -569,7 +580,7 @@ export function ContractWizard({ vehicles, clients }: Props) {
 
   // ── Wizard ─────────────────────────────────────────────────────────────────
   return (
-    <div className="max-w-5xl mx-auto">
+    <div className="max-w-[1024px] mx-auto">
       {isSignatureModalOpen && (
         <SignatureModal
           onSave={(dataUrl) => {
@@ -1290,7 +1301,7 @@ export function ContractWizard({ vehicles, clients }: Props) {
         <div className="p-6 bg-slate-50 border-t border-slate-200 flex items-center justify-between">
           <button
             type="button"
-            onClick={step === 1 ? () => router.push('/contracts') : prevStep}
+            onClick={step === 1 ? () => router.push(`/${tenantSlug}/contracts`) : prevStep}
             className="flex items-center gap-2 px-6 py-2.5 rounded-xl text-sm font-bold text-slate-500 hover:text-slate-900 transition-colors"
           >
             <ArrowLeft size={18} />

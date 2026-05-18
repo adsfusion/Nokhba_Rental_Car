@@ -117,7 +117,7 @@ export function MobileContractFlow({
   if (step === 7) {
     return (
       <div className="min-h-screen bg-slate-950 flex items-center justify-center p-6">
-        <div className="w-full max-w-sm text-center space-y-5">
+        <div className="w-full max-w-[384px] text-center space-y-5">
           <div className="w-24 h-24 bg-green-500/10 border-2 border-green-500/30 rounded-full flex items-center justify-center mx-auto">
             <CheckCircle2 size={44} className="text-green-400" />
           </div>

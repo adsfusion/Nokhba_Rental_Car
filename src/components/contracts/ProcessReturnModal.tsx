@@ -65,7 +65,7 @@ export function ProcessReturnModal({ contract, onClose }: Props) {
           <motion.div
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
-            className="pointer-events-auto bg-white rounded-3xl w-full max-w-md shadow-2xl my-8"
+            className="pointer-events-auto bg-white rounded-3xl w-full max-w-[448px] shadow-2xl my-8"
           >
             {/* Header */}
             <div className="flex items-center justify-between px-6 pt-6 pb-4 border-b border-slate-100">
