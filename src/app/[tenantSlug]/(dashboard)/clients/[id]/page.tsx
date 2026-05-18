@@ -10,9 +10,9 @@ export const metadata = {
 export default async function ClientProfilePage({
   params,
 }: {
-  params: Promise<{ id: string }>;
+  params: Promise<{ id: string; tenantSlug: string }>;
 }) {
-  const { id } = await params;
+  const { id, tenantSlug } = await params;
 
   const [client, contracts] = await Promise.all([
     getClientById(id),
@@ -25,7 +25,7 @@ export default async function ClientProfilePage({
 
   return (
     <div className="space-y-6">
-      <ClientProfile client={client} contracts={contracts} />
+      <ClientProfile client={client} contracts={contracts} tenantSlug={tenantSlug} />
     </div>
   );
 }

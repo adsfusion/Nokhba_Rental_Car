@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useTransition } from 'react';
-import { useRouter, useParams } from 'next/navigation';
+import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { Car, ArrowLeft, ImagePlus, Trash2 } from 'lucide-react';
 import { addVehicle } from '@/lib/actions/vehicles';
@@ -48,10 +48,8 @@ const EMPTY_FORM: NewVehicleForm = {
 const inputClass =
   'w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-2.5 text-sm focus:border-slate-900 focus:outline-none transition-colors';
 
-export default function AddVehicleForm() {
+export default function AddVehicleForm({ tenantSlug }: { tenantSlug: string }) {
   const router = useRouter();
-  const params = useParams();
-  const tenantSlug = params?.tenantSlug as string;
   const { addNotification } = useNotifications();
   const [isPending, startTransition] = useTransition();
   const [form, setForm] = useState<NewVehicleForm>(EMPTY_FORM);

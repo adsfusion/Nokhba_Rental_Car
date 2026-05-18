@@ -2,10 +2,15 @@ import AddVehicleForm from '@/components/fleet/AddVehicleForm';
 
 export const metadata = { title: 'Add Vehicle — Nokhba' };
 
-export default function NewVehiclePage() {
+export default async function NewVehiclePage({
+  params,
+}: {
+  params: Promise<{ tenantSlug: string }>;
+}) {
+  const { tenantSlug } = await params;
   return (
     <div className="space-y-6">
-      <AddVehicleForm />
+      <AddVehicleForm tenantSlug={tenantSlug} />
     </div>
   );
 }

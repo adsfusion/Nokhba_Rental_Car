@@ -10,7 +10,7 @@ interface Props {
 export const metadata = { title: 'Edit Vehicle — Nokhba' };
 
 export default async function EditVehiclePage({ params }: Props) {
-  const { vehicleId } = await params;
+  const { vehicleId, tenantSlug } = await params;
   const [vehicles, contracts] = await Promise.all([getVehicles(), getContracts()]);
   const vehicle = vehicles.find((v) => v.id === vehicleId);
 
@@ -18,7 +18,7 @@ export default async function EditVehiclePage({ params }: Props) {
 
   return (
     <div className="space-y-6">
-      <EditVehicleForm vehicle={vehicle} contracts={contracts} />
+      <EditVehicleForm vehicle={vehicle} contracts={contracts} tenantSlug={tenantSlug} />
     </div>
   );
 }

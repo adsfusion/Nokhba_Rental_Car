@@ -14,6 +14,7 @@ import { type DocumentType } from '@/lib/actions/clientDocuments';
 import { SignLinkPopover } from './SignLinkPopover';
 import { signatureUrlToPngBase64 } from '@/lib/signatureToBase64';
 import { getSignatureSignedUrl } from '@/lib/actions/publicContracts';
+import jsPDF from 'jspdf';
 
 type Props = {
   contract: ContractWithDetails;
@@ -46,6 +47,7 @@ export function ContractDetail({ contract, docUrls }: Props) {
   const [isPdfLoading, setIsPdfLoading] = useState(false);
   const [signedPreviewUrl, setSignedPreviewUrl] = useState<string | null>(null);
   const [previewError, setPreviewError] = useState(false);
+  const [signatureData, setSignatureData] = useState<string | null>(null);
 
   const statusCfg = STATUS_CONFIG[contract.status] ?? {
     label: contract.status,
@@ -59,25 +61,24 @@ export function ContractDetail({ contract, docUrls }: Props) {
   useEffect(() => {
     if (!contract.signature_url) return;
     let cancelled = false;
-    getSignatureSignedUrl(contract.signature_url)
-      .then((url) => { if (!cancelled) setSignedPreviewUrl(url); })
-      .catch(() => { if (!cancelled) setPreviewError(true); });
+    const loadSig = async () => {
+      try {
+        const url = await getSignatureSignedUrl(contract.signature_url);
+        if (!cancelled) setSignedPreviewUrl(url);
+        const b64 = await signatureUrlToPngBase64(url);
+        if (!cancelled) setSignatureData(b64);
+      } catch (err) {
+        if (!cancelled) setPreviewError(true);
+      }
+    };
+    loadSig();
     return () => { cancelled = true; };
   }, [contract.signature_url]);
 
-  const handleDownloadPDF = async () => {
+  const handleDownloadPDF = () => {
     if (isPdfLoading) return;
     setIsPdfLoading(true);
     try {
-      // 1. SECURE SIGNATURE FETCH
-      let signaturePng: string | undefined;
-      if (contract.signature_url) {
-        const signedUrl = await getSignatureSignedUrl(contract.signature_url);
-        signaturePng = await signatureUrlToPngBase64(signedUrl);
-      }
-
-      // 2. GENERATE COMPLEX FRENCH PDF
-      const { default: jsPDF } = await import('jspdf');
       const doc = new jsPDF();
 
       doc.setFont("helvetica");
@@ -232,8 +233,8 @@ export function ContractDetail({ contract, docUrls }: Props) {
       doc.setFontSize(9);
       doc.text("Signature du locataire :", 20, 225);
       // Inject secure signature
-      if (signaturePng) {
-        doc.addImage(signaturePng, "PNG", 60, 220, 25, 10);
+      if (signatureData) {
+        doc.addImage(signatureData, "PNG", 60, 220, 25, 10);
       }
       doc.text("Signature du propriétaire :", 110, 225);
 
@@ -281,7 +282,8 @@ export function ContractDetail({ contract, docUrls }: Props) {
       doc.setFont("helvetica", "bold");
       doc.text("Dommages importants - dépôt de garantie encaissé ou conservé", 75, 280);
 
-      doc.save(`NOKHBA-${contract.contract_number}.pdf`);
+      // Native save method! Chrome will respect it because it's synchronous.
+      doc.save(`NOKHBA-CTR-${contract.contract_number || 'Contract'}.pdf`);
     } catch (err: any) {
       console.error('[PDF] Download failed:', err);
       alert(`PDF generation failed: ${err?.message ?? 'Unknown error'}`);

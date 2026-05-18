@@ -1,6 +1,6 @@
 'use client';
 
-import { useTransition } from 'react';
+import { useTransition, use } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -16,9 +16,9 @@ const inputClass =
 const labelClass = 'text-xs font-bold uppercase tracking-wider text-slate-500';
 
 export default function NewClientPage() {
-  const router = useRouter();
   const params = useParams();
   const tenantSlug = params?.tenantSlug as string;
+  const router = useRouter();
   const { addNotification } = useNotifications();
   const [isPending, startTransition] = useTransition();
 

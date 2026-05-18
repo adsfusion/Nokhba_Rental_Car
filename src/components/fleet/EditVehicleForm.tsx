@@ -1,33 +1,28 @@
 'use client';
 
 import { useState, useTransition } from 'react';
-import { useRouter, useParams } from 'next/navigation';
+import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { Car, ArrowLeft, ImagePlus, Trash2, ClipboardCheck } from 'lucide-react';
 import { updateVehicle } from '@/lib/actions/vehicles';
 import { useNotifications } from '@/components/layout/NotificationProvider';
-import ReturnVehicleModal from './ReturnVehicleModal';
 import type { Vehicle, Contract } from '@/types';
 
 interface Props {
   vehicle: Vehicle;
   contracts: Contract[];
+  tenantSlug: string;
 }
 
 const inputClass =
   'w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-2.5 text-sm focus:border-slate-900 focus:outline-none transition-colors';
 
-export default function EditVehicleForm({ vehicle, contracts }: Props) {
+export default function EditVehicleForm({ vehicle, contracts, tenantSlug }: Props) {
   const router = useRouter();
-  const params = useParams();
-  const tenantSlug = params?.tenantSlug as string;
   const { addNotification } = useNotifications();
   const [isPending, startTransition] = useTransition();
 
   const [form, setForm] = useState<Vehicle>(vehicle);
-  const [returningContractId, setReturningContractId] = useState<string | null>(null);
-
-  const returningContract = contracts.find((c) => c.id === returningContractId) ?? null;
 
   function handleImageUpload(files: FileList | null) {
     if (!files || files.length === 0) return;
@@ -48,16 +43,7 @@ export default function EditVehicleForm({ vehicle, contracts }: Props) {
     });
   }
 
-  function handleProcessReturn() {
-    const openContract = contracts.find(
-      (c) => c.vehicle_id === vehicle.id && c.status !== 'completed' && c.status !== 'cancelled'
-    );
-    if (openContract) {
-      setReturningContractId(openContract.id);
-    } else {
-      addNotification('Cannot Process Return', 'No open rental contract found for this vehicle.', 'error');
-    }
-  }
+
 
   function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -75,13 +61,6 @@ export default function EditVehicleForm({ vehicle, contracts }: Props) {
 
   return (
     <>
-      {returningContract && (
-        <ReturnVehicleModal
-          isOpen={true}
-          contract={returningContract}
-          onClose={() => setReturningContractId(null)}
-        />
-      )}
 
       <div className="max-w-[896px] mx-auto space-y-6">
         {/* Header */}
@@ -113,14 +92,13 @@ export default function EditVehicleForm({ vehicle, contracts }: Props) {
           </div>
 
           {vehicle.status === 'rented' && (
-            <button
-              type="button"
-              onClick={handleProcessReturn}
+            <Link
+              href={`/${tenantSlug}/fleet/${vehicle.id}/return`}
               className="flex items-center gap-2 px-4 py-2 bg-white border border-slate-200 text-slate-700 rounded-xl text-sm font-semibold hover:bg-slate-50 transition-colors shadow-sm"
             >
               <ClipboardCheck size={16} />
               Process Return
-            </button>
+            </Link>
           )}
         </div>
 

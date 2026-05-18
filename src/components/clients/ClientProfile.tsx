@@ -24,6 +24,7 @@ import type { ContractWithDetails } from '@/lib/actions/contracts';
 type Props = {
   client: Client;
   contracts: ContractWithDetails[];
+  tenantSlug: string;
 };
 
 type EditFields = {
@@ -58,7 +59,7 @@ const DOCUMENT_SLOTS: { key: DocumentType; label: string }[] = [
   { key: 'license_back',   label: 'Driver License — Back' },
 ];
 
-export function ClientProfile({ client, contracts }: Props) {
+export function ClientProfile({ client, contracts, tenantSlug }: Props) {
   const router = useRouter();
   const { addNotification } = useNotifications();
   const [isPending, startTransition] = useTransition();
@@ -161,7 +162,7 @@ export function ClientProfile({ client, contracts }: Props) {
     <>
       {/* Back link */}
       <Link
-        href="/clients"
+        href={`/${tenantSlug}/clients`}
         className="inline-flex items-center gap-2 text-sm font-semibold text-slate-500 hover:text-slate-900 transition-colors"
       >
         <ArrowLeft size={16} />
