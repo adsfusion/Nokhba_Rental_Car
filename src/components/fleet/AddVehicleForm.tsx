@@ -175,7 +175,7 @@ export default function AddVehicleForm({ tenantSlug }: { tenantSlug: string }) {
           model:        finalModel,
         };
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        await addVehicle(payload as any);
+        await addVehicle(payload as any, tenantSlug);
         addNotification('Vehicle Added', `${finalMake} ${finalModel} has been added to your fleet.`, 'success');
         router.refresh();
         router.push(`/${tenantSlug}/fleet`);
