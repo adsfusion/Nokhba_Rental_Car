@@ -120,7 +120,7 @@ export default function FleetTable({ vehicles, contracts }: FleetTableProps) {
                         {vehicle.license_plate}
                       </div>
                       <p className="text-left text-xs text-slate-500">
-                        {vehicle.year} &bull; Reg: {vehicle.created_at || '—'}
+                        {vehicle.year} &bull; Reg: {vehicle.registration_date || '—'}
                       </p>
                     </td>
                     <td className="px-6 py-4">
@@ -140,7 +140,7 @@ export default function FleetTable({ vehicles, contracts }: FleetTableProps) {
                       </p>
                     </td>
                     <td className="hidden px-6 py-4 md:table-cell">
-                      {activeContract ? (
+                      {vehicle.status === 'rented' && activeContract ? (
                         <div className="text-xs">
                           <p className="font-semibold text-slate-900">{activeContract.start_date} &rarr;</p>
                           <p className="text-slate-500">{activeContract.end_date}</p>

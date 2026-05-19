@@ -2,12 +2,13 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { useParams } from 'next/navigation';
+import { useParams, useRouter } from 'next/navigation';
 import {
   ArrowLeft, Download, Send, Settings, User, Car, Calendar,
   DollarSign, FileImage, FileText, CheckCircle2, Clock, ExternalLink,
-  Loader2,
+  Loader2, RefreshCw,
 } from 'lucide-react';
+import { createSupabaseBrowserClient } from '@/lib/supabase/client';
 import { cn } from '@/lib/utils';
 import { type ContractWithDetails } from '@/lib/actions/contracts';
 import { type DocumentType } from '@/lib/actions/clientDocuments';
@@ -41,16 +42,19 @@ const ALL_DOC_TYPES: DocumentType[] = ['id_front', 'id_back', 'license_front', '
 
 export function ContractDetail({ contract, docUrls }: Props) {
   const params = useParams();
+  const router = useRouter();
   const tenantSlug = params?.tenantSlug as string;
   const prefix = tenantSlug ? `/${tenantSlug}` : '';
   const [showSignLink, setShowSignLink] = useState(false);
   const [isPdfLoading, setIsPdfLoading] = useState(false);
+  const [isCompleting, setIsCompleting] = useState(false);
+  const [localStatus, setLocalStatus] = useState(contract.status);
   const [signedPreviewUrl, setSignedPreviewUrl] = useState<string | null>(null);
   const [previewError, setPreviewError] = useState(false);
   const [signatureData, setSignatureData] = useState<string | null>(null);
 
-  const statusCfg = STATUS_CONFIG[contract.status] ?? {
-    label: contract.status,
+  const statusCfg = STATUS_CONFIG[localStatus] ?? {
+    label: localStatus,
     className: 'bg-slate-100 text-slate-600',
   };
 
@@ -75,6 +79,37 @@ export function ContractDetail({ contract, docUrls }: Props) {
     loadSig();
     return () => { cancelled = true; };
   }, [contract.signature_url]);
+
+  const handleCompleteContract = async () => {
+    if (isCompleting) return;
+    setIsCompleting(true);
+    try {
+      const supabase = createSupabaseBrowserClient();
+      const { error: contractError } = await supabase
+        .from('contracts')
+        .update({ status: 'completed', returned_at: new Date().toISOString() })
+        .eq('id', contract.id);
+      if (contractError) throw contractError;
+
+      if (contract.vehicle_id) {
+        const { error: vehicleError } = await supabase
+          .from('vehicles')
+          .update({ status: 'available' })
+          .eq('id', contract.vehicle_id);
+        if (vehicleError) throw vehicleError;
+      }
+
+      // Instant UI update — don't wait for server round-trip
+      setLocalStatus('completed');
+      // Background refresh so server data stays in sync
+      router.refresh();
+    } catch (err: any) {
+      console.error('[Complete Contract] Failed:', err);
+      alert(`Failed to complete contract: ${err?.message ?? 'Unknown error'}`);
+    } finally {
+      setIsCompleting(false);
+    }
+  };
 
   const handleDownloadPDF = () => {
     if (isPdfLoading) return;
@@ -410,15 +445,28 @@ export function ContractDetail({ contract, docUrls }: Props) {
                 Signed {new Date(contract.signed_at).toLocaleString()}
               </p>
             )}
-            <button
-              onClick={handleDownloadPDF}
-              disabled={isPdfLoading}
-              className="px-5 py-2.5 bg-slate-900 text-white rounded-xl font-bold text-sm hover:bg-slate-800 transition-colors flex items-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed"
-            >
-              {isPdfLoading
-                ? <><Loader2 size={15} className="animate-spin" /> Generating…</>
-                : <><Download size={15} /> Download PDF</>}
-            </button>
+            <div className="flex items-center gap-2 flex-wrap">
+              <button
+                onClick={handleDownloadPDF}
+                disabled={isPdfLoading}
+                className="px-5 py-2.5 bg-white border border-slate-200 text-slate-700 rounded-xl font-bold text-sm hover:bg-slate-50 transition-colors flex items-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed"
+              >
+                {isPdfLoading
+                  ? <><Loader2 size={15} className="animate-spin" /> Generating…</>
+                  : <><Download size={15} /> Download PDF</>}
+              </button>
+              {localStatus === 'signed' && (
+                <button
+                  onClick={handleCompleteContract}
+                  disabled={isCompleting}
+                  className="px-5 py-2.5 bg-slate-900 hover:bg-slate-800 text-white rounded-xl text-sm font-semibold transition-colors flex items-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed"
+                >
+                  {isCompleting
+                    ? <><Loader2 size={15} className="animate-spin" /> Completing…</>
+                    : <><RefreshCw size={15} /> Complete Contract</>}
+                </button>
+              )}
+            </div>
           </div>
         ) : (
           <div className="flex items-center justify-between gap-4 flex-wrap">
@@ -495,7 +543,7 @@ export function ContractDetail({ contract, docUrls }: Props) {
       </div>
 
       {/* Return data panel — shown when contract is completed */}
-      {contract.status === 'completed' && contract.returned_at && (
+      {localStatus === 'completed' && contract.returned_at && (
         <div className="bg-white border border-slate-200 rounded-2xl p-5">
           <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-4">Return Details</p>
           <div className="grid grid-cols-2 md:grid-cols-3 gap-4">

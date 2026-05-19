@@ -49,7 +49,26 @@ export default function EditVehicleForm({ vehicle, contracts, tenantSlug }: Prop
     e.preventDefault();
     startTransition(async () => {
       try {
-        await updateVehicle(vehicle.id, form);
+        // Explicitly build the safe update payload — never send id, tenant_id, or created_at
+        const payload: Partial<typeof form> = {
+          brand: form.brand,
+          model: form.model,
+          year: form.year,
+          color: form.color,
+          license_plate: form.license_plate,
+          vin: form.vin,
+          daily_rate: form.daily_rate,
+          weekly_rate: form.weekly_rate,
+          monthly_rate: form.monthly_rate,
+          status: form.status,
+          mileage: form.mileage,
+          fuel_type: form.fuel_type,
+          transmission: form.transmission,
+          images: form.images,
+          notes: form.notes,
+          // registration_date omitted until Supabase PostgREST schema cache refreshes (~5 min)
+        };
+        await updateVehicle(vehicle.id, payload);
         addNotification('Vehicle Updated', `${form.brand} ${form.model} has been updated.`, 'success');
         router.push(`/${tenantSlug}/fleet`);
         router.refresh();
@@ -146,8 +165,8 @@ export default function EditVehicleForm({ vehicle, contracts, tenantSlug }: Prop
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="space-y-1.5">
                 <label className="text-xs font-bold uppercase tracking-wider text-slate-500">Registration Date</label>
-                <input required type="date" value={form.created_at}
-                  onChange={(e) => setForm({ ...form, created_at: e.target.value })}
+                <input type="date" value={form.registration_date || ''}
+                  onChange={(e) => setForm({ ...form, registration_date: e.target.value || null })}
                   className={`${inputClass} uppercase`} />
               </div>
               <div className="space-y-1.5">

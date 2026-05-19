@@ -30,6 +30,7 @@ export type Vehicle = {
   transmission: 'automatic' | 'manual' | null;
   images: string[] | null; // DB: images (not "photos"), stored as jsonb
   notes: string | null;
+  registration_date: string | null; // DB: date field, format YYYY-MM-DD
   created_at?: string;
   updated_at?: string;
 };
