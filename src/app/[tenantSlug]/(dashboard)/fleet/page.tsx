@@ -1,10 +1,11 @@
 import { getVehicles } from '@/lib/actions/vehicles';
-import { getContracts } from '@/lib/actions/contracts';
+import { getContracts, type ContractWithDetails } from '@/lib/actions/contracts';
 import FleetTable from '@/components/fleet/FleetTable';
+import type { Vehicle } from '@/types';
 
 export default async function FleetPage() {
-  let vehicles = [];
-  let contracts = [];
+  let vehicles: Vehicle[] = [];
+  let contracts: ContractWithDetails[] = [];
 
   try {
     vehicles = await getVehicles();
@@ -22,7 +23,7 @@ export default async function FleetPage() {
 
   return (
     <div className="space-y-6">
-      <FleetTable vehicles={vehicles || []} contracts={contracts || []} />
+      <FleetTable vehicles={vehicles} contracts={contracts} />
     </div>
   );
 }
