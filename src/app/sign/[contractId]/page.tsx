@@ -1,6 +1,7 @@
 import { notFound } from 'next/navigation';
 import { getPublicContractDetails } from '@/lib/actions/publicContracts';
 import { MobileContractFlow } from '@/components/contracts/MobileContractFlow';
+import { Check } from 'lucide-react';
 
 export const metadata = {
   title: 'Upload Docs & Sign | Nokhba Rental',
@@ -20,15 +21,19 @@ export default async function SignContractPage({
   // Already completed — show a static success screen
   if (contract.status === 'signed' || contract.status === 'completed') {
     return (
-      <div className="min-h-screen bg-slate-950 flex items-center justify-center p-6">
-        <div className="w-full max-w-sm text-center space-y-4">
-          <div className="w-20 h-20 bg-green-500/10 border-2 border-green-500/30 rounded-full flex items-center justify-center mx-auto">
-            <svg className="w-10 h-10 text-green-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-            </svg>
+      <div className="min-h-screen bg-slate-50 flex flex-col items-center justify-center p-6 md:p-12">
+        <div className="bg-white border border-slate-200 rounded-3xl p-8 md:p-12 text-center max-w-[500px] w-full shadow-sm">
+          <div className="w-16 h-16 bg-green-50 border border-green-100 rounded-2xl flex items-center justify-center mx-auto mb-6">
+            <Check size={32} className="text-green-600" />
           </div>
-          <h2 className="text-2xl font-bold text-white">Already Signed</h2>
-          <p className="text-slate-400 text-sm">This contract has already been signed and finalized.</p>
+          <div className="space-y-4">
+            <h1 className="text-2xl font-black tracking-tight text-slate-900">
+              Already Signed
+            </h1>
+            <p className="text-slate-500 leading-relaxed text-sm">
+              This contract has already been signed and finalized. No further action is required from you at this time.
+            </p>
+          </div>
         </div>
       </div>
     );
