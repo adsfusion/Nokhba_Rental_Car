@@ -1,12 +1,49 @@
 'use client';
 
-import { useState, useTransition } from 'react';
+import { useState, useTransition, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { Car, ArrowLeft, ImagePlus, Trash2, ClipboardCheck } from 'lucide-react';
+import { Car, ArrowLeft, ImagePlus, Trash2, ClipboardCheck, ChevronDown } from 'lucide-react';
 import { updateVehicle } from '@/lib/actions/vehicles';
 import { useNotifications } from '@/components/layout/NotificationProvider';
 import type { Vehicle, Contract } from '@/types';
+
+// ── Moroccan market car data ───────────────────────────────────────────────────
+const carData: Record<string, Record<string, string[]>> = {
+  Economy: {
+    Dacia:    ['Logan', 'Sandero Stepway'],
+    Renault:  ['Clio 5'],
+    Peugeot:  ['208'],
+    Citroën:  ['C3'],
+    Kia:      ['Picanto'],
+    Hyundai:  ['i10'],
+    Fiat:     ['500'],
+  },
+  'Mid-size': {
+    Peugeot:  ['301'],
+    Citroën:  ['C-Elysée'],
+    Hyundai:  ['Accent'],
+    Renault:  ['Express'],
+  },
+  SUV: {
+    Dacia:      ['Duster'],
+    Volkswagen: ['T-Roc'],
+    Hyundai:    ['Tucson'],
+    Peugeot:    ['2008'],
+  },
+  Luxury: {
+    'Land Rover':     ['Range Rover Vogue', 'Range Rover Evoque'],
+    'Mercedes-Benz':  ['G-Class G63 AMG', 'C-Class', 'E-Class'],
+    BMW:              ['X5 M Competition', '5 Series'],
+    Volkswagen:       ['Touareg'],
+  },
+};
+
+const VEHICLE_TYPES = Object.keys(carData);
+
+const YEARS = [2027, 2026, 2025, 2024, 2023, 2022, 2021, 2020, 2019, 2018, 2017, 2016, 2015];
+
+const COLORS = ['White', 'Black', 'Silver', 'Gray', 'Blue', 'Red', 'Brown', 'Green', 'Yellow', 'Other'];
 
 interface Props {
   vehicle: Vehicle;
@@ -16,13 +53,82 @@ interface Props {
 
 const inputClass =
   'w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-2.5 text-sm focus:border-slate-900 focus:outline-none transition-colors';
+const selectClass =
+  'w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-2.5 text-sm focus:border-slate-900 focus:outline-none transition-colors appearance-none cursor-pointer';
+const labelClass = 'block text-xs font-bold uppercase tracking-wider text-slate-500 mb-1.5';
+const sectionClass = 'rounded-2xl border border-slate-100 bg-slate-50/50 p-5 space-y-4';
+const sectionTitleClass = 'text-sm font-bold text-slate-700 uppercase tracking-wide flex items-center gap-2';
+
+// Detect if a brand currently stored in the vehicle exists in the dictionary
+function detectVehicleType(brand: string): string {
+  for (const [type, makes] of Object.entries(carData)) {
+    if (brand in makes) return type;
+  }
+  return '';
+}
 
 export default function EditVehicleForm({ vehicle, contracts, tenantSlug }: Props) {
   const router = useRouter();
   const { addNotification } = useNotifications();
   const [isPending, startTransition] = useTransition();
 
+  // ── Cascading state ──────────────────────────────────────────────────────────
+  const [vehicleType, setVehicleType] = useState<string>(
+    vehicle.vehicle_type || detectVehicleType(vehicle.brand) || ''
+  );
+  const [selectedMake, setSelectedMake] = useState<string>(
+    vehicleType && carData[vehicleType] && vehicle.brand in carData[vehicleType]
+      ? vehicle.brand
+      : vehicle.brand
+        ? 'Other'
+        : ''
+  );
+  const [customMake, setCustomMake] = useState<string>(
+    selectedMake === 'Other' ? vehicle.brand : ''
+  );
+  const [selectedModel, setSelectedModel] = useState<string>(() => {
+    if (!vehicleType || !vehicle.brand) return vehicle.model || '';
+    const makes = carData[vehicleType];
+    if (!makes) return 'Other';
+    const models = makes[vehicle.brand];
+    if (!models) return 'Other';
+    return models.includes(vehicle.model) ? vehicle.model : 'Other';
+  });
+  const [customModel, setCustomModel] = useState<string>(
+    selectedModel === 'Other' ? vehicle.model : ''
+  );
+
+  // ── Form state ───────────────────────────────────────────────────────────────
   const [form, setForm] = useState<Vehicle>(vehicle);
+
+  // ── Derived dropdown options ─────────────────────────────────────────────────
+  const makesForType: string[] = useMemo(() => {
+    if (!vehicleType || !carData[vehicleType]) return [];
+    return [...Object.keys(carData[vehicleType]), 'Other'];
+  }, [vehicleType]);
+
+  const modelsForMake: string[] = useMemo(() => {
+    if (!vehicleType || !selectedMake || selectedMake === 'Other') return [];
+    const models = carData[vehicleType]?.[selectedMake];
+    if (!models) return [];
+    return [...models, 'Other'];
+  }, [vehicleType, selectedMake]);
+
+  // ── Handlers ─────────────────────────────────────────────────────────────────
+  function handleTypeChange(type: string) {
+    setVehicleType(type);
+    setSelectedMake('');
+    setCustomMake('');
+    setSelectedModel('');
+    setCustomModel('');
+  }
+
+  function handleMakeChange(make: string) {
+    setSelectedMake(make);
+    setCustomMake('');
+    setSelectedModel('');
+    setCustomModel('');
+  }
 
   function handleImageUpload(files: FileList | null) {
     if (!files || files.length === 0) return;
@@ -43,35 +149,43 @@ export default function EditVehicleForm({ vehicle, contracts, tenantSlug }: Prop
     });
   }
 
-
-
   function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
+
+    // Resolve final make & model (handle "Other" fallback)
+    const finalMake  = selectedMake  === 'Other' ? customMake.trim()  : selectedMake  || vehicle.brand;
+    const finalModel = selectedModel === 'Other' ? customModel.trim() : selectedModel || vehicle.model;
+
+    if (!finalMake)  { addNotification('Validation', 'Please enter or select a Make.', 'error'); return; }
+    if (!finalModel) { addNotification('Validation', 'Please enter or select a Model.', 'error'); return; }
+
     startTransition(async () => {
       try {
-        // Explicitly build the safe update payload — never send id, tenant_id, or created_at
-        const payload: Partial<typeof form> = {
-          brand: form.brand,
-          model: form.model,
-          year: form.year,
-          color: form.color,
-          license_plate: form.license_plate,
-          vin: form.vin,
-          daily_rate: form.daily_rate,
-          weekly_rate: form.weekly_rate,
-          monthly_rate: form.monthly_rate,
-          status: form.status,
-          mileage: form.mileage,
-          fuel_type: form.fuel_type,
-          transmission: form.transmission,
-          images: form.images,
-          notes: form.notes,
-          // registration_date omitted until Supabase PostgREST schema cache refreshes (~5 min)
+        const payload: Partial<Vehicle> = {
+          vehicle_type:         vehicleType || null,
+          brand:                finalMake,
+          model:                finalModel,
+          year:                 form.year,
+          color:                form.color,
+          license_plate:        form.license_plate,
+          vin:                  form.vin,
+          daily_rate:           form.daily_rate,
+          weekly_rate:          form.weekly_rate,
+          monthly_rate:         form.monthly_rate,
+          status:               form.status,
+          mileage:              form.mileage,
+          fuel_type:            form.fuel_type,
+          transmission:         form.transmission,
+          images:               form.images,
+          notes:                form.notes,
+          registration_date:    form.registration_date,
+          insurance_expiry:     form.insurance_expiry,
+          technical_inspection: form.technical_inspection,
         };
         await updateVehicle(vehicle.id, payload);
-        addNotification('Vehicle Updated', `${form.brand} ${form.model} has been updated.`, 'success');
-        router.push(`/${tenantSlug}/fleet`);
+        addNotification('Vehicle Updated', `${finalMake} ${finalModel} has been updated.`, 'success');
         router.refresh();
+        router.push(`/${tenantSlug}/fleet`);
       } catch (err) {
         addNotification('Error', err instanceof Error ? err.message : 'Failed to update vehicle.', 'error');
       }
@@ -79,193 +193,473 @@ export default function EditVehicleForm({ vehicle, contracts, tenantSlug }: Prop
   }
 
   return (
-    <>
+    <div className="max-w-[896px] w-full mx-auto space-y-6">
 
-      <div className="max-w-[896px] mx-auto space-y-6">
-        {/* Header */}
-        <div className="flex items-center gap-4">
+      {/* Back link */}
+      <div className="flex items-center gap-4">
+        <Link
+          href={`/${tenantSlug}/fleet`}
+          className="flex items-center gap-2 text-sm font-medium text-slate-500 hover:text-slate-900 transition-colors"
+        >
+          <ArrowLeft size={16} />
+          Back to Fleet
+        </Link>
+      </div>
+
+      {/* Page header */}
+      <div className="flex items-center justify-between gap-4 flex-wrap">
+        <div className="flex items-center gap-3">
+          <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-slate-100 text-slate-500 overflow-hidden">
+            {form.images && form.images.length > 0 ? (
+              <img src={form.images[0]} alt={vehicle.brand} className="h-full w-full object-cover" />
+            ) : (
+              <Car size={24} />
+            )}
+          </div>
+          <div>
+            <h1 className="text-2xl font-bold text-slate-900 tracking-tight">
+              {vehicle.brand} {vehicle.model}
+            </h1>
+            <p className="text-slate-500 text-sm">{vehicle.year} · {vehicle.license_plate}</p>
+          </div>
+        </div>
+
+        {vehicle.status === 'rented' && (
           <Link
-            href={`/${tenantSlug}/fleet`}
-            className="flex items-center gap-2 text-sm font-medium text-slate-500 hover:text-slate-900 transition-colors"
+            href={`/${tenantSlug}/fleet/${vehicle.id}/return`}
+            className="flex items-center gap-2 px-4 py-2 bg-white border border-slate-200 text-slate-700 rounded-xl text-sm font-semibold hover:bg-slate-50 transition-colors shadow-sm"
           >
-            <ArrowLeft size={16} />
-            Back to Fleet
+            <ClipboardCheck size={16} />
+            Process Return
           </Link>
+        )}
+      </div>
+
+      {/* ── Form card ─────────────────────────────────────────────────────────── */}
+      <div className="bg-white border border-slate-200 rounded-3xl shadow-sm overflow-hidden">
+        <div className="px-6 py-5 border-b border-slate-100 bg-gradient-to-r from-slate-50 to-white">
+          <h2 className="font-bold text-slate-900 text-lg">Edit Vehicle Details</h2>
+          <p className="text-slate-500 text-sm mt-0.5">Update the information below across all sections.</p>
         </div>
 
-        <div className="flex items-center justify-between gap-4 flex-wrap">
-          <div className="flex items-center gap-3">
-            <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-slate-100 text-slate-500">
-              {form.images && form.images.length > 0 ? (
-                <img src={form.images[0]} alt={form.brand} className="h-full w-full object-cover rounded-xl" />
-              ) : (
-                <Car size={24} />
-              )}
-            </div>
-            <div>
-              <h1 className="text-2xl font-bold text-slate-900 tracking-tight">
-                {vehicle.brand} {vehicle.model}
-              </h1>
-              <p className="text-slate-500 text-sm">{vehicle.year} · {vehicle.license_plate}</p>
-            </div>
-          </div>
+        <form onSubmit={handleSubmit} className="p-6 space-y-8">
 
-          {vehicle.status === 'rented' && (
-            <Link
-              href={`/${tenantSlug}/fleet/${vehicle.id}/return`}
-              className="flex items-center gap-2 px-4 py-2 bg-white border border-slate-200 text-slate-700 rounded-xl text-sm font-semibold hover:bg-slate-50 transition-colors shadow-sm"
-            >
-              <ClipboardCheck size={16} />
-              Process Return
-            </Link>
-          )}
-        </div>
+          {/* ── SECTION 1: Basic Info ─────────────────────────────────────────── */}
+          <div className="space-y-4">
+            <p className={sectionTitleClass}>
+              <span className="flex h-5 w-5 items-center justify-center rounded-full bg-slate-900 text-[10px] font-black text-white">1</span>
+              Basic Info
+            </p>
+            <div className={sectionClass}>
 
-        {/* Form */}
-        <div className="bg-white border border-slate-200 rounded-3xl shadow-sm overflow-hidden">
-          <div className="p-6 border-b border-slate-100">
-            <h2 className="font-bold text-slate-900">Edit Vehicle Details</h2>
-            <p className="text-slate-500 text-sm mt-0.5">Update the information below.</p>
-          </div>
-
-          <form onSubmit={handleSubmit} className="p-6 space-y-6">
-            {/* Make & Model */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              {/* Vehicle Type */}
               <div className="space-y-1.5">
-                <label className="text-xs font-bold uppercase tracking-wider text-slate-500">Make</label>
-                <input required type="text" value={form.brand}
-                  onChange={(e) => setForm({ ...form, brand: e.target.value })}
-                  className={inputClass} />
-              </div>
-              <div className="space-y-1.5">
-                <label className="text-xs font-bold uppercase tracking-wider text-slate-500">Model</label>
-                <input required type="text" value={form.model}
-                  onChange={(e) => setForm({ ...form, model: e.target.value })}
-                  className={inputClass} />
-              </div>
-            </div>
-
-            {/* Year & Plate */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div className="space-y-1.5">
-                <label className="text-xs font-bold uppercase tracking-wider text-slate-500">Year</label>
-                <input required type="number" value={form.year || ''}
-                  onChange={(e) => setForm({ ...form, year: parseInt(e.target.value) })}
-                  className={inputClass} />
-              </div>
-              <div className="space-y-1.5">
-                <label className="text-xs font-bold uppercase tracking-wider text-slate-500">License Plate</label>
-                <input required type="text" value={form.license_plate}
-                  onChange={(e) => setForm({ ...form, license_plate: e.target.value })}
-                  className={inputClass} />
-              </div>
-            </div>
-
-            {/* Reg Date & Color */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div className="space-y-1.5">
-                <label className="text-xs font-bold uppercase tracking-wider text-slate-500">Registration Date</label>
-                <input type="date" value={form.registration_date || ''}
-                  onChange={(e) => setForm({ ...form, registration_date: e.target.value || null })}
-                  className={`${inputClass} uppercase`} />
-              </div>
-              <div className="space-y-1.5">
-                <label className="text-xs font-bold uppercase tracking-wider text-slate-500">Color</label>
-                <input required type="text" value={form.color || ''}
-                  onChange={(e) => setForm({ ...form, color: e.target.value })}
-                  className={inputClass} />
-              </div>
-            </div>
-
-            {/* Mileage */}
-            <div className="space-y-1.5">
-              <label className="text-xs font-bold uppercase tracking-wider text-slate-500">Current Mileage (km)</label>
-              <input required type="number" value={form.mileage || 0}
-                onChange={(e) => setForm({ ...form, mileage: parseInt(e.target.value) })}
-                className={inputClass} />
-            </div>
-
-            {/* Type & Status */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div className="space-y-1.5">
-                <label className="text-xs font-bold uppercase tracking-wider text-slate-500">Vehicle Type</label>
-                <select required value={form.fuel_type || ''}
-                  onChange={(e) => setForm({ ...form, fuel_type: e.target.value as any })}
-                  className={inputClass}>
-                  <option value="">— Select —</option>
-                  <option value="Luxury">Luxury</option>
-                  <option value="Sport">Sport</option>
-                  <option value="SUV">SUV</option>
-                  <option value="Economy">Economy</option>
-                </select>
-              </div>
-              <div className="space-y-1.5">
-                <label className="text-xs font-bold uppercase tracking-wider text-slate-500">Status</label>
-                <select required value={form.status}
-                  onChange={(e) => setForm({ ...form, status: e.target.value as Vehicle['status'] })}
-                  className={inputClass}>
-                  <option value="available">Available</option>
-                  <option value="rented">In Use</option>
-                  <option value="maintenance">Maintenance</option>
-                </select>
-              </div>
-            </div>
-
-            {/* Maintenance fields */}
-            {form.status === 'maintenance' && (
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 rounded-xl border border-orange-100 bg-orange-50/50 p-4">
-                <div className="col-span-2 sm:col-span-1 space-y-1.5">
-                  <label className="text-xs font-bold uppercase text-orange-800">Expected Return Date</label>
-                  <input required type="date" value={form.updated_at || ''}
-                    onChange={(e) => setForm({ ...form, updated_at: e.target.value })}
-                    className="w-full rounded-xl border border-orange-200 bg-white px-4 py-2.5 text-sm focus:border-orange-500 focus:outline-none" />
+                <label className={labelClass}>Vehicle Type</label>
+                <div className="relative">
+                  <select
+                    value={vehicleType}
+                    onChange={(e) => handleTypeChange(e.target.value)}
+                    className={selectClass}
+                  >
+                    <option value="">— Select type —</option>
+                    {VEHICLE_TYPES.map((t) => (
+                      <option key={t} value={t}>{t}</option>
+                    ))}
+                    <option value="Other">Other</option>
+                  </select>
+                  <ChevronDown size={14} className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-slate-400" />
                 </div>
-                <div className="col-span-2 space-y-1.5">
-                  <label className="text-xs font-bold uppercase text-orange-800">Reason</label>
-                  <input required type="text" placeholder="e.g. Broken windshield"
+              </div>
+
+              {/* Make & Model — cascading row */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                {/* Make */}
+                <div className="space-y-1.5">
+                  <label className={labelClass}>Make / Brand</label>
+                  {vehicleType && makesForType.length > 0 ? (
+                    <>
+                      <div className="relative">
+                        <select
+                          required
+                          value={selectedMake}
+                          onChange={(e) => handleMakeChange(e.target.value)}
+                          className={selectClass}
+                        >
+                          <option value="">— Select make —</option>
+                          {makesForType.map((m) => (
+                            <option key={m} value={m}>{m}</option>
+                          ))}
+                        </select>
+                        <ChevronDown size={14} className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-slate-400" />
+                      </div>
+                      {selectedMake === 'Other' && (
+                        <input
+                          required
+                          type="text"
+                          placeholder="Type make name…"
+                          value={customMake}
+                          onChange={(e) => setCustomMake(e.target.value)}
+                          className={inputClass + ' mt-2'}
+                        />
+                      )}
+                    </>
+                  ) : (
+                    <input
+                      required
+                      type="text"
+                      placeholder="e.g. Toyota"
+                      value={selectedMake === 'Other' ? customMake : selectedMake}
+                      onChange={(e) => {
+                        setSelectedMake('Other');
+                        setCustomMake(e.target.value);
+                      }}
+                      className={inputClass}
+                    />
+                  )}
+                </div>
+
+                {/* Model */}
+                <div className="space-y-1.5">
+                  <label className={labelClass}>Model</label>
+                  {selectedMake && selectedMake !== 'Other' && modelsForMake.length > 0 ? (
+                    <>
+                      <div className="relative">
+                        <select
+                          required
+                          value={selectedModel}
+                          onChange={(e) => {
+                            setSelectedModel(e.target.value);
+                            setCustomModel('');
+                          }}
+                          className={selectClass}
+                        >
+                          <option value="">— Select model —</option>
+                          {modelsForMake.map((m) => (
+                            <option key={m} value={m}>{m}</option>
+                          ))}
+                        </select>
+                        <ChevronDown size={14} className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-slate-400" />
+                      </div>
+                      {selectedModel === 'Other' && (
+                        <input
+                          required
+                          type="text"
+                          placeholder="Type model name…"
+                          value={customModel}
+                          onChange={(e) => setCustomModel(e.target.value)}
+                          className={inputClass + ' mt-2'}
+                        />
+                      )}
+                    </>
+                  ) : (
+                    <input
+                      required
+                      type="text"
+                      placeholder="e.g. Corolla"
+                      value={selectedModel === 'Other' ? customModel : selectedModel}
+                      onChange={(e) => {
+                        setSelectedModel('Other');
+                        setCustomModel(e.target.value);
+                      }}
+                      className={inputClass}
+                    />
+                  )}
+                </div>
+              </div>
+
+              {/* Year, Plate, VIN */}
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                {/* Year — dropdown */}
+                <div className="space-y-1.5">
+                  <label className={labelClass}>Year</label>
+                  <div className="relative">
+                    <select
+                      required
+                      value={form.year ?? ''}
+                      onChange={(e) => setForm({ ...form, year: parseInt(e.target.value) || null })}
+                      className={selectClass}
+                    >
+                      <option value="">— Year —</option>
+                      {YEARS.map((y) => (
+                        <option key={y} value={y}>{y}</option>
+                      ))}
+                    </select>
+                    <ChevronDown size={14} className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-slate-400" />
+                  </div>
+                </div>
+                <div className="space-y-1.5">
+                  <label className={labelClass}>License Plate</label>
+                  <input
+                    required
+                    type="text"
+                    value={form.license_plate}
+                    onChange={(e) => setForm({ ...form, license_plate: e.target.value })}
+                    className={inputClass}
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <label className={labelClass}>VIN / Chassis</label>
+                  <input
+                    type="text"
+                    placeholder="Optional"
+                    value={form.vin || ''}
+                    onChange={(e) => setForm({ ...form, vin: e.target.value || null })}
+                    className={inputClass}
+                  />
+                </div>
+              </div>
+
+            </div>
+          </div>
+
+          {/* ── SECTION 2: Technical Specs ────────────────────────────────────── */}
+          <div className="space-y-4">
+            <p className={sectionTitleClass}>
+              <span className="flex h-5 w-5 items-center justify-center rounded-full bg-slate-900 text-[10px] font-black text-white">2</span>
+              Technical Specs
+            </p>
+            <div className={sectionClass}>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                {/* Color — dropdown */}
+                <div className="space-y-1.5">
+                  <label className={labelClass}>Color</label>
+                  <div className="relative">
+                    <select
+                      value={form.color || ''}
+                      onChange={(e) => setForm({ ...form, color: e.target.value || null })}
+                      className={selectClass}
+                    >
+                      <option value="">— Select color —</option>
+                      {COLORS.map((c) => (
+                        <option key={c} value={c}>{c}</option>
+                      ))}
+                    </select>
+                    <ChevronDown size={14} className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-slate-400" />
+                  </div>
+                </div>
+                {/* Mileage */}
+                <div className="space-y-1.5">
+                  <label className={labelClass}>Current Mileage (km)</label>
+                  <input
+                    required
+                    type="number"
+                    min={0}
+                    value={form.mileage ?? 0}
+                    onChange={(e) => setForm({ ...form, mileage: parseInt(e.target.value) || 0 })}
+                    className={inputClass}
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                {/* Transmission */}
+                <div className="space-y-1.5">
+                  <label className={labelClass}>Transmission</label>
+                  <div className="relative">
+                    <select
+                      value={form.transmission || ''}
+                      onChange={(e) => setForm({ ...form, transmission: e.target.value || null })}
+                      className={selectClass}
+                    >
+                      <option value="">— Select —</option>
+                      <option value="Manual">Manual</option>
+                      <option value="Automatic">Automatic</option>
+                    </select>
+                    <ChevronDown size={14} className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-slate-400" />
+                  </div>
+                </div>
+                {/* Fuel Type */}
+                <div className="space-y-1.5">
+                  <label className={labelClass}>Fuel Type</label>
+                  <div className="relative">
+                    <select
+                      value={form.fuel_type || ''}
+                      onChange={(e) => setForm({ ...form, fuel_type: e.target.value || null })}
+                      className={selectClass}
+                    >
+                      <option value="">— Select —</option>
+                      <option value="Diesel">Diesel</option>
+                      <option value="Gasoline">Gasoline</option>
+                      <option value="Electric">Electric</option>
+                      <option value="Hybrid">Hybrid</option>
+                      <option value="Other">Other</option>
+                    </select>
+                    <ChevronDown size={14} className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-slate-400" />
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* ── SECTION 3: Legal & Financial ─────────────────────────────────── */}
+          <div className="space-y-4">
+            <p className={sectionTitleClass}>
+              <span className="flex h-5 w-5 items-center justify-center rounded-full bg-slate-900 text-[10px] font-black text-white">3</span>
+              Legal &amp; Financial
+            </p>
+            <div className={sectionClass}>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                {/* Registration Date */}
+                <div className="space-y-1.5">
+                  <label className={labelClass}>Registration Date</label>
+                  <input
+                    type="date"
+                    value={form.registration_date || ''}
+                    onChange={(e) => setForm({ ...form, registration_date: e.target.value || null })}
+                    className={`${inputClass} uppercase`}
+                  />
+                </div>
+                {/* Insurance Expiry */}
+                <div className="space-y-1.5">
+                  <label className={labelClass}>Insurance Expiry</label>
+                  <input
+                    type="date"
+                    value={form.insurance_expiry || ''}
+                    onChange={(e) => setForm({ ...form, insurance_expiry: e.target.value || null })}
+                    className={`${inputClass} uppercase`}
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                {/* Technical Inspection */}
+                <div className="space-y-1.5">
+                  <label className={labelClass}>Technical Inspection Date</label>
+                  <input
+                    type="date"
+                    value={form.technical_inspection || ''}
+                    onChange={(e) => setForm({ ...form, technical_inspection: e.target.value || null })}
+                    className={`${inputClass} uppercase`}
+                  />
+                </div>
+                {/* Daily Rate */}
+                <div className="space-y-1.5">
+                  <label className={labelClass}>Daily Rate (MAD)</label>
+                  <input
+                    type="number"
+                    min={0}
+                    step={0.01}
+                    placeholder="0.00"
+                    value={form.daily_rate ?? ''}
+                    onChange={(e) => setForm({ ...form, daily_rate: parseFloat(e.target.value) || null })}
+                    className={inputClass}
+                  />
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* ── SECTION 4: Status & Media ─────────────────────────────────────── */}
+          <div className="space-y-4">
+            <p className={sectionTitleClass}>
+              <span className="flex h-5 w-5 items-center justify-center rounded-full bg-slate-900 text-[10px] font-black text-white">4</span>
+              Status &amp; Media
+            </p>
+            <div className={sectionClass}>
+              {/* Status */}
+              <div className="space-y-1.5">
+                <label className={labelClass}>Vehicle Status</label>
+                <div className="relative">
+                  <select
+                    required
+                    value={form.status}
+                    onChange={(e) => setForm({ ...form, status: e.target.value as Vehicle['status'] })}
+                    className={selectClass}
+                  >
+                    <option value="available">Available</option>
+                    <option value="rented">In Use / Rented</option>
+                    <option value="maintenance">Maintenance</option>
+                    <option value="inactive">Inactive</option>
+                  </select>
+                  <ChevronDown size={14} className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-slate-400" />
+                </div>
+              </div>
+
+              {/* Maintenance fields */}
+              {form.status === 'maintenance' && (
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 rounded-xl border border-orange-100 bg-orange-50/60 p-4">
+                  <div className="space-y-1.5">
+                    <label className="block text-xs font-bold uppercase text-orange-800 mb-1.5">Expected Return Date</label>
+                    <input
+                      type="date"
+                      value={form.updated_at ? form.updated_at.slice(0, 10) : ''}
+                      onChange={(e) => setForm({ ...form, updated_at: e.target.value })}
+                      className="w-full rounded-xl border border-orange-200 bg-white px-4 py-2.5 text-sm focus:border-orange-500 focus:outline-none"
+                    />
+                  </div>
+                  <div className="space-y-1.5">
+                    <label className="block text-xs font-bold uppercase text-orange-800 mb-1.5">Reason</label>
+                    <input
+                      type="text"
+                      placeholder="e.g. Broken windshield"
+                      value={form.notes || ''}
+                      onChange={(e) => setForm({ ...form, notes: e.target.value })}
+                      className="w-full rounded-xl border border-orange-200 bg-white px-4 py-2.5 text-sm focus:border-orange-500 focus:outline-none"
+                    />
+                  </div>
+                </div>
+              )}
+
+              {/* Notes */}
+              {form.status !== 'maintenance' && (
+                <div className="space-y-1.5">
+                  <label className={labelClass}>Notes (optional)</label>
+                  <textarea
+                    rows={3}
                     value={form.notes || ''}
                     onChange={(e) => setForm({ ...form, notes: e.target.value })}
-                    className="w-full rounded-xl border border-orange-200 bg-white px-4 py-2.5 text-sm focus:border-orange-500 focus:outline-none" />
+                    className={`${inputClass} resize-none`}
+                    placeholder="Any additional notes about this vehicle…"
+                  />
+                </div>
+              )}
+
+              {/* Photos */}
+              <div className="space-y-3 pt-2">
+                <label className={labelClass}>Photos</label>
+                <div className="flex flex-wrap gap-3">
+                  {(form.images || []).map((photo, i) => (
+                    <div key={i} className="group relative h-24 w-24 overflow-hidden rounded-xl border border-slate-200">
+                      <img src={photo} alt="" className="h-full w-full object-cover" />
+                      <button
+                        type="button"
+                        onClick={() => removeImage(i)}
+                        className="absolute inset-0 flex items-center justify-center bg-black/50 text-white opacity-0 transition-all group-hover:opacity-100"
+                      >
+                        <Trash2 size={20} />
+                      </button>
+                    </div>
+                  ))}
+                  <label className="flex h-24 w-24 cursor-pointer flex-col items-center justify-center rounded-xl border-2 border-dashed border-slate-300 text-slate-400 transition-colors hover:border-slate-400 hover:bg-slate-50 hover:text-slate-600">
+                    <ImagePlus size={24} className="mb-1" />
+                    <span className="text-[10px] font-bold">Add Photo</span>
+                    <input type="file" accept="image/*" multiple className="hidden"
+                      onChange={(e) => handleImageUpload(e.target.files)} />
+                  </label>
                 </div>
               </div>
-            )}
-
-            {/* Photos */}
-            <div className="space-y-3 border-t border-slate-100 pt-4">
-              <label className="text-xs font-bold uppercase tracking-wider text-slate-500">Photos</label>
-              <div className="flex flex-wrap gap-3">
-                {(form.images || []).map((photo, i) => (
-                  <div key={i} className="group relative h-24 w-24 overflow-hidden rounded-xl border border-slate-200">
-                    <img src={photo} alt="" className="h-full w-full object-cover" />
-                    <button type="button" onClick={() => removeImage(i)}
-                      className="absolute inset-0 flex items-center justify-center bg-black/50 text-white opacity-0 transition-all group-hover:opacity-100">
-                      <Trash2 size={20} />
-                    </button>
-                  </div>
-                ))}
-                <label className="flex h-24 w-24 cursor-pointer flex-col items-center justify-center rounded-xl border-2 border-dashed border-slate-300 text-slate-400 transition-colors hover:border-slate-400 hover:bg-slate-50 hover:text-slate-600">
-                  <ImagePlus size={24} className="mb-1" />
-                  <span className="text-[10px] font-bold">Add Photo</span>
-                  <input type="file" accept="image/*" multiple className="hidden"
-                    onChange={(e) => handleImageUpload(e.target.files)} />
-                </label>
-              </div>
             </div>
+          </div>
 
-            {/* Actions */}
-            <div className="pt-4 flex items-center justify-end gap-3 border-t border-slate-100">
-              <Link href={`/${tenantSlug}/fleet`}
-                className="px-5 py-2.5 text-slate-500 hover:text-slate-900 font-semibold transition-colors text-sm">
-                Cancel
-              </Link>
-              <button type="submit" disabled={isPending}
-                className="px-6 py-2.5 bg-slate-900 text-white rounded-xl font-bold shadow-lg shadow-slate-900/10 hover:bg-slate-800 transition-colors disabled:opacity-50 text-sm">
-                {isPending ? 'Saving…' : 'Save Changes'}
-              </button>
-            </div>
-          </form>
-        </div>
+          {/* ── Actions ──────────────────────────────────────────────────────── */}
+          <div className="pt-2 flex items-center justify-end gap-3 border-t border-slate-100">
+            <Link
+              href={`/${tenantSlug}/fleet`}
+              className="px-5 py-2.5 text-slate-500 hover:text-slate-900 font-semibold transition-colors text-sm"
+            >
+              Cancel
+            </Link>
+            <button
+              type="submit"
+              disabled={isPending}
+              className="px-6 py-2.5 bg-slate-900 text-white rounded-xl font-bold shadow-lg shadow-slate-900/10 hover:bg-slate-800 transition-colors disabled:opacity-50 text-sm"
+            >
+              {isPending ? 'Saving…' : 'Save Changes'}
+            </button>
+          </div>
+
+        </form>
       </div>
-    </>
+    </div>
   );
 }

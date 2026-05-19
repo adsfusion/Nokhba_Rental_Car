@@ -31,9 +31,13 @@ export async function addVehicle(
   vehicle: Omit<Vehicle, 'id' | 'tenant_id' | 'created_at'>
 ): Promise<Vehicle> {
   const supabase = await createSupabaseServerClient();
+  
+  // Strip columns that don't exist in the current database schema
+  const { insurance_expiry, technical_inspection, vehicle_type, ...safeVehicle } = vehicle as any;
+  
   const { data, error } = await supabase
     .from('vehicles')
-    .insert(vehicle)
+    .insert(safeVehicle)
     .select()
     .single();
 
@@ -65,9 +69,12 @@ export async function updateVehicle(
 
   if (!profile?.tenant_id) throw new Error('No tenant ID found');
 
+  // Strip columns that don't exist in the current database schema
+  const { insurance_expiry, technical_inspection, vehicle_type, ...safeUpdates } = updates as any;
+
   const { data, error } = await supabase
     .from('vehicles')
-    .update(updates)
+    .update(safeUpdates)
     .eq('id', id)
     .eq('tenant_id', profile.tenant_id)
     .select()
@@ -76,5 +83,6 @@ export async function updateVehicle(
   if (error) throw error;
 
   revalidatePath('/fleet');
+  revalidatePath('/[tenantSlug]/fleet', 'page');
   return data as Vehicle;
 }

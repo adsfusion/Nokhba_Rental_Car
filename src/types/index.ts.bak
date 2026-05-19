@@ -15,25 +15,22 @@ export type VehicleStatus = 'available' | 'rented' | 'maintenance' | 'inactive';
 export type Vehicle = {
   id: string;
   tenant_id: string;
-  brand: string;               // DB: brand (not "make")
+  brand: string;          // DB: brand (not "make")
   model: string;
   year: number | null;
   color: string | null;
-  license_plate: string;       // DB: license_plate (not "plate")
-  vin: string | null;          // VIN / chassis number
-  vehicle_type: string | null; // DB: vehicle_type (Economy | Mid-size | SUV | Luxury | Other)
+  license_plate: string;  // DB: license_plate (not "plate")
+  vin: string | null;
   daily_rate: number | null;
   weekly_rate: number | null;
   monthly_rate: number | null;
-  status: VehicleStatus;       // DB enum: available | rented | maintenance | inactive
-  mileage: number | null;      // DB: mileage (not "current_mileage")
-  fuel_type: string | null;    // Diesel | Gasoline | Electric | Hybrid | Other
-  transmission: string | null; // Manual | Automatic
-  images: string[] | null;     // DB: images, stored as jsonb
+  status: VehicleStatus;  // DB enum: available | rented | maintenance | inactive
+  mileage: number | null; // DB: mileage (not "current_mileage")
+  fuel_type: 'gasoline' | 'diesel' | 'electric' | 'hybrid' | null;
+  transmission: 'automatic' | 'manual' | null;
+  images: string[] | null; // DB: images (not "photos"), stored as jsonb
   notes: string | null;
-  registration_date: string | null;    // DB: date field, format YYYY-MM-DD
-  insurance_expiry: string | null;     // DB: date field, format YYYY-MM-DD
-  technical_inspection: string | null; // DB: date field, format YYYY-MM-DD
+  registration_date: string | null; // DB: date field, format YYYY-MM-DD
   created_at?: string;
   updated_at?: string;
 };
