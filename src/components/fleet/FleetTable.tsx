@@ -14,6 +14,31 @@ interface FleetTableProps {
 
 type FilterStatus = 'All' | 'available' | 'rented' | 'maintenance';
 
+function formatDate(dateString: string | null | undefined): string {
+  if (!dateString) return '—';
+  try {
+    let dateVal = new Date(dateString);
+    
+    // Specifically handle local date parsing for simple YYYY-MM-DD strings without timezones
+    if (/^\d{4}-\d{2}-\d{2}$/.test(dateString)) {
+      dateVal = new Date(dateString + 'T00:00:00');
+    }
+
+    if (isNaN(dateVal.getTime())) {
+      return '—';
+    }
+    
+    return dateVal.toLocaleDateString('fr-MA', {
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric'
+    });
+  } catch (error) {
+    console.error('Error formatting date:', dateString, error);
+    return '—';
+  }
+}
+
 export default function FleetTable({ vehicles, contracts }: FleetTableProps) {
   const params = useParams();
   const tenantSlug = params?.tenantSlug as string;
@@ -21,8 +46,11 @@ export default function FleetTable({ vehicles, contracts }: FleetTableProps) {
 
   const [filterStatus, setFilterStatus] = useState<FilterStatus>('All');
 
+  const safeVehicles = vehicles || [];
+  const safeContracts = contracts || [];
+
   const filteredVehicles =
-    filterStatus === 'All' ? vehicles : vehicles.filter((v) => v.status === filterStatus);
+    filterStatus === 'All' ? safeVehicles : safeVehicles.filter((v) => v.status === filterStatus);
 
   function statusBadgeClass(status: string) {
     return cn(
@@ -84,7 +112,7 @@ export default function FleetTable({ vehicles, contracts }: FleetTableProps) {
             </thead>
             <tbody className="divide-y divide-slate-100">
               {filteredVehicles.map((vehicle) => {
-                const activeContract = contracts.find(
+                const activeContract = safeContracts.find(
                   (c) =>
                     c.vehicle_id === vehicle.id &&
                     c.status !== 'completed' &&
@@ -98,7 +126,7 @@ export default function FleetTable({ vehicles, contracts }: FleetTableProps) {
                           {vehicle.images && vehicle.images.length > 0 ? (
                             <img
                               src={vehicle.images[0]}
-                              alt={vehicle.brand}
+                              alt={vehicle.brand || 'Vehicle'}
                               className="h-full w-full object-cover"
                             />
                           ) : (
@@ -107,7 +135,7 @@ export default function FleetTable({ vehicles, contracts }: FleetTableProps) {
                         </div>
                         <div>
                           <p className="font-bold text-slate-900">
-                            {vehicle.brand} {vehicle.model}
+                            {vehicle.brand || '—'} {vehicle.model || '—'}
                           </p>
                           <p className="text-xs text-slate-500">
                             {vehicle.vehicle_type || vehicle.fuel_type || '—'} &bull; {vehicle.color || 'Unspecified'}
@@ -117,17 +145,15 @@ export default function FleetTable({ vehicles, contracts }: FleetTableProps) {
                     </td>
                     <td className="px-6 py-4">
                       <div className="mb-1 inline-block rounded bg-slate-100 px-2 py-1 font-mono text-[10px] font-bold text-slate-600">
-                        {vehicle.license_plate}
+                        {vehicle.license_plate || '—'}
                       </div>
                       <p className="text-left text-xs text-slate-500">
-                        {vehicle.year} &bull; Reg:{' '}
-                        {vehicle.registration_date
-                          ? new Date(vehicle.registration_date + 'T00:00:00').toLocaleDateString('fr-MA', { day: '2-digit', month: '2-digit', year: 'numeric' })
-                          : '—'}
+                        {vehicle.year || '—'} &bull; Reg:{' '}
+                        {formatDate(vehicle.registration_date)}
                       </p>
                     </td>
                     <td className="px-6 py-4">
-                      <span className={statusBadgeClass(vehicle.status)}>{vehicle.status}</span>
+                      <span className={statusBadgeClass(vehicle.status || 'available')}>{vehicle.status || 'available'}</span>
                       {vehicle.status === 'maintenance' && vehicle.notes && (
                         <div
                           className="max-w-[120px] truncate text-[10px] font-medium text-amber-600"
@@ -145,13 +171,13 @@ export default function FleetTable({ vehicles, contracts }: FleetTableProps) {
                     <td className="hidden px-6 py-4 md:table-cell">
                       {vehicle.status === 'rented' && activeContract ? (
                         <div className="text-xs">
-                          <p className="font-semibold text-slate-900">{activeContract.start_date} &rarr;</p>
-                          <p className="text-slate-500">{activeContract.end_date}</p>
+                          <p className="font-semibold text-slate-900">{formatDate(activeContract.start_date)} &rarr;</p>
+                          <p className="text-slate-500">{formatDate(activeContract.end_date)}</p>
                         </div>
                       ) : vehicle.status === 'maintenance' && vehicle.updated_at ? (
                         <div className="text-xs">
                           <p className="font-semibold text-orange-600">Expected Return</p>
-                          <p className="font-medium text-orange-500">{vehicle.updated_at}</p>
+                          <p className="font-medium text-orange-500">{formatDate(vehicle.updated_at)}</p>
                         </div>
                       ) : (
                         <span className="text-xs text-slate-400">—</span>
