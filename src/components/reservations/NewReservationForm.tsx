@@ -47,11 +47,13 @@ export default function NewReservationForm({ clients, vehicles, reservations, te
   const [notes, setNotes] = useState('');
 
   // Hydration-safe initial local dates on client mount
+  const [isMounted, setIsMounted] = useState(false);
   useEffect(() => {
     const now = new Date();
     const tomorrow = new Date(now.getTime() + 24 * 60 * 60 * 1000);
     setStartDate(toLocalDatetimeString(now));
     setEndDate(toLocalDatetimeString(tomorrow));
+    setIsMounted(true);
   }, []);
 
   // Format date state string for input binding, handling timezone suffix removal
@@ -194,25 +196,41 @@ export default function NewReservationForm({ clients, vehicles, reservations, te
           {/* Start Date */}
           <div className="space-y-1.5 md:col-span-6">
             <label className={labelClass}>Start Date & Time</label>
-            <input
-              required
-              type="datetime-local"
-              value={formatForInput(startDate)}
-              onChange={(e) => setStartDate(e.target.value)}
-              className={inputClass}
-            />
+            {isMounted ? (
+              <input
+                required
+                type="datetime-local"
+                value={formatForInput(startDate)}
+                onChange={(e) => setStartDate(e.target.value)}
+                className={inputClass}
+              />
+            ) : (
+              <input
+                disabled
+                type="datetime-local"
+                className={inputClass}
+              />
+            )}
           </div>
 
           {/* End Date */}
           <div className="space-y-1.5 md:col-span-6">
             <label className={labelClass}>End Date & Time</label>
-            <input
-              required
-              type="datetime-local"
-              value={formatForInput(endDate)}
-              onChange={(e) => setEndDate(e.target.value)}
-              className={inputClass}
-            />
+            {isMounted ? (
+              <input
+                required
+                type="datetime-local"
+                value={formatForInput(endDate)}
+                onChange={(e) => setEndDate(e.target.value)}
+                className={inputClass}
+              />
+            ) : (
+              <input
+                disabled
+                type="datetime-local"
+                className={inputClass}
+              />
+            )}
           </div>
 
           {/* Vehicle Select */}

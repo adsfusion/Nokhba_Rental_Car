@@ -54,11 +54,6 @@ export default function EditReservationForm({
   const [notes, setNotes] = useState('');
 
   // Hydration-safe initial local dates on client mount
-  const [isMounted, setIsMounted] = useState(false);
-  useEffect(() => {
-    setIsMounted(true);
-  }, []);
-
   useEffect(() => {
     if (reservation) {
       setClientId(reservation.client_id);
@@ -225,41 +220,25 @@ export default function EditReservationForm({
           {/* Start Date */}
           <div className="space-y-1.5 md:col-span-6">
             <label className={labelClass}>Start Date & Time</label>
-            {isMounted ? (
-              <input
-                required
-                type="datetime-local"
-                value={formatForInput(startDate)}
-                onChange={(e) => setStartDate(e.target.value)}
-                className={inputClass}
-              />
-            ) : (
-              <input
-                disabled
-                type="datetime-local"
-                className={inputClass}
-              />
-            )}
+            <input
+              required
+              type="datetime-local"
+              value={formatForInput(startDate)}
+              onChange={(e) => setStartDate(e.target.value)}
+              className={inputClass}
+            />
           </div>
 
           {/* End Date */}
           <div className="space-y-1.5 md:col-span-6">
             <label className={labelClass}>End Date & Time</label>
-            {isMounted ? (
-              <input
-                required
-                type="datetime-local"
-                value={formatForInput(endDate)}
-                onChange={(e) => setEndDate(e.target.value)}
-                className={inputClass}
-              />
-            ) : (
-              <input
-                disabled
-                type="datetime-local"
-                className={inputClass}
-              />
-            )}
+            <input
+              required
+              type="datetime-local"
+              value={formatForInput(endDate)}
+              onChange={(e) => setEndDate(e.target.value)}
+              className={inputClass}
+            />
           </div>
 
           {/* Vehicle Select */}

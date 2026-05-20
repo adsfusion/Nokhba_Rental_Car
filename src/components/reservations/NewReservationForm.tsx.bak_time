@@ -4,7 +4,7 @@ import { useState, useTransition, useMemo, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { ChevronDown, Calendar, AlertCircle } from 'lucide-react';
-import { updateReservation, type ReservationWithDetails } from '@/lib/actions/reservations';
+import { addReservation } from '@/lib/actions/reservations';
 import { useNotifications } from '@/components/layout/NotificationProvider';
 import type { Client, Vehicle, Reservation } from '@/types';
 
@@ -16,7 +16,6 @@ const selectClass =
 const labelClass = 'block text-xs font-bold uppercase tracking-wider text-slate-500 mb-1.5';
 
 interface Props {
-  reservation: ReservationWithDetails;
   clients: Client[];
   vehicles: Vehicle[];
   reservations: Reservation[];
@@ -33,13 +32,7 @@ function toLocalDatetimeString(date: Date): string {
   return `${yyyy}-${mm}-${dd}T${hh}:${min}`;
 }
 
-export default function EditReservationForm({
-  reservation,
-  clients,
-  vehicles,
-  reservations,
-  tenantSlug,
-}: Props) {
+export default function NewReservationForm({ clients, vehicles, reservations, tenantSlug }: Props) {
   const router = useRouter();
   const { addNotification } = useNotifications();
   const [isPending, startTransition] = useTransition();
@@ -50,26 +43,16 @@ export default function EditReservationForm({
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
   const [totalAmount, setTotalAmount] = useState<number | ''>('');
-  const [status, setStatus] = useState<'PENDING' | 'CONFIRMED' | 'CANCELLED' | 'COMPLETED'>('PENDING');
+  const [status, setStatus] = useState<'PENDING' | 'CONFIRMED'>('PENDING');
   const [notes, setNotes] = useState('');
 
   // Hydration-safe initial local dates on client mount
-  const [isMounted, setIsMounted] = useState(false);
   useEffect(() => {
-    setIsMounted(true);
+    const now = new Date();
+    const tomorrow = new Date(now.getTime() + 24 * 60 * 60 * 1000);
+    setStartDate(toLocalDatetimeString(now));
+    setEndDate(toLocalDatetimeString(tomorrow));
   }, []);
-
-  useEffect(() => {
-    if (reservation) {
-      setClientId(reservation.client_id);
-      setVehicleId(reservation.vehicle_id);
-      setStartDate(reservation.start_date ? toLocalDatetimeString(new Date(reservation.start_date)) : '');
-      setEndDate(reservation.end_date ? toLocalDatetimeString(new Date(reservation.end_date)) : '');
-      setTotalAmount(reservation.total_amount);
-      setStatus(reservation.status as 'PENDING' | 'CONFIRMED' | 'CANCELLED' | 'COMPLETED');
-      setNotes(reservation.notes || '');
-    }
-  }, [reservation]);
 
   // Format date state string for input binding, handling timezone suffix removal
   const formatForInput = (val: string) => {
@@ -81,9 +64,11 @@ export default function EditReservationForm({
     return isNaN(date.getTime()) ? '' : toLocalDatetimeString(date);
   };
 
-  // 1. Reactive overlap filter for vehicles (EXCLUDING self conflict)
+
+  // 1. Reactive overlap filter for vehicles
   const availableVehicles = useMemo(() => {
     if (!startDate || !endDate) {
+      // If dates aren't set, display all vehicles
       return vehicles;
     }
 
@@ -97,9 +82,6 @@ export default function EditReservationForm({
     return vehicles.filter((vehicle) => {
       // Find any overlapping reservation for THIS vehicle that is PENDING or CONFIRMED
       const hasOverlap = reservations.some((res) => {
-        // CRITICAL: Exclude this reservation from conflict checks
-        if (res.id === reservation.id) return false;
-
         if (res.vehicle_id !== vehicle.id) return false;
         if (res.status !== 'PENDING' && res.status !== 'CONFIRMED') return false;
 
@@ -112,11 +94,11 @@ export default function EditReservationForm({
 
       return !hasOverlap;
     });
-  }, [startDate, endDate, vehicles, reservations, reservation.id]);
+  }, [startDate, endDate, vehicles, reservations]);
 
-  // 2. Auto-calculate price, preserving manual values if inputs remain unchanged
+  // 2. Auto-calculate price
   useEffect(() => {
-    if (!startDate || !endDate || !vehicleId || !reservation) {
+    if (!startDate || !endDate || !vehicleId) {
       return;
     }
 
@@ -125,19 +107,6 @@ export default function EditReservationForm({
 
     if (isNaN(startMs) || isNaN(endMs) || startMs >= endMs) {
       setTotalAmount('');
-      return;
-    }
-
-    // Preserve original total amount if the dates and vehicle did not change
-    const origStartLocal = reservation.start_date ? toLocalDatetimeString(new Date(reservation.start_date)) : '';
-    const origEndLocal = reservation.end_date ? toLocalDatetimeString(new Date(reservation.end_date)) : '';
-
-    if (
-      vehicleId === reservation.vehicle_id &&
-      startDate === origStartLocal &&
-      endDate === origEndLocal
-    ) {
-      setTotalAmount(reservation.total_amount);
       return;
     }
 
@@ -152,7 +121,7 @@ export default function EditReservationForm({
     const dailyRate = selectedVehicle.daily_rate || 0;
     
     setTotalAmount(diffDays * dailyRate);
-  }, [startDate, endDate, vehicleId, vehicles, reservation]);
+  }, [startDate, endDate, vehicleId, vehicles]);
 
   // Clear selected vehicle if it becomes unavailable due to date change
   useEffect(() => {
@@ -178,7 +147,7 @@ export default function EditReservationForm({
 
     startTransition(async () => {
       try {
-        await updateReservation(reservation.id, {
+        await addReservation({
           client_id: clientId,
           vehicle_id: vehicleId,
           start_date: new Date(startDate).toISOString(),
@@ -188,11 +157,11 @@ export default function EditReservationForm({
           notes: notes || null,
         });
 
-        addNotification('Success', 'Reservation updated successfully.', 'success');
+        addNotification('Success', 'Reservation created successfully.', 'success');
         router.push(`/${tenantSlug}/reservations`);
       } catch (err: any) {
-        console.error('Failed to update reservation:', err);
-        addNotification('Error', err.message || 'Failed to update reservation.', 'error');
+        console.error('Failed to create reservation:', err);
+        addNotification('Error', err.message || 'Failed to create reservation.', 'error');
       }
     });
   };
@@ -225,41 +194,25 @@ export default function EditReservationForm({
           {/* Start Date */}
           <div className="space-y-1.5 md:col-span-6">
             <label className={labelClass}>Start Date & Time</label>
-            {isMounted ? (
-              <input
-                required
-                type="datetime-local"
-                value={formatForInput(startDate)}
-                onChange={(e) => setStartDate(e.target.value)}
-                className={inputClass}
-              />
-            ) : (
-              <input
-                disabled
-                type="datetime-local"
-                className={inputClass}
-              />
-            )}
+            <input
+              required
+              type="datetime-local"
+              value={formatForInput(startDate)}
+              onChange={(e) => setStartDate(e.target.value)}
+              className={inputClass}
+            />
           </div>
 
           {/* End Date */}
           <div className="space-y-1.5 md:col-span-6">
             <label className={labelClass}>End Date & Time</label>
-            {isMounted ? (
-              <input
-                required
-                type="datetime-local"
-                value={formatForInput(endDate)}
-                onChange={(e) => setEndDate(e.target.value)}
-                className={inputClass}
-              />
-            ) : (
-              <input
-                disabled
-                type="datetime-local"
-                className={inputClass}
-              />
-            )}
+            <input
+              required
+              type="datetime-local"
+              value={formatForInput(endDate)}
+              onChange={(e) => setEndDate(e.target.value)}
+              className={inputClass}
+            />
           </div>
 
           {/* Vehicle Select */}
@@ -318,13 +271,11 @@ export default function EditReservationForm({
               <select
                 required
                 value={status}
-                onChange={(e) => setStatus(e.target.value as any)}
+                onChange={(e) => setStatus(e.target.value as 'PENDING' | 'CONFIRMED')}
                 className={selectClass}
               >
                 <option value="PENDING">PENDING</option>
                 <option value="CONFIRMED">CONFIRMED</option>
-                <option value="CANCELLED">CANCELLED</option>
-                <option value="COMPLETED">COMPLETED</option>
               </select>
               <ChevronDown size={14} className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-slate-400" />
             </div>
@@ -357,7 +308,7 @@ export default function EditReservationForm({
           disabled={isPending}
           className="px-5 py-2.5 bg-slate-900 text-white hover:bg-slate-800 transition-colors rounded-xl text-sm font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
         >
-          {isPending ? 'Saving...' : 'Save Changes'}
+          {isPending ? 'Saving...' : 'Create Reservation'}
         </button>
       </div>
     </form>
