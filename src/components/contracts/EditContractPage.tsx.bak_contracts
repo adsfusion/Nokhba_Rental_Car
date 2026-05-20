@@ -3,8 +3,7 @@
 import { useTransition, useState, useRef } from 'react';
 import { useForm } from 'react-hook-form';
 import { useRouter, useParams } from 'next/navigation';
-import Link from 'next/link';
-import { ArrowLeft, AlertCircle, Loader2, PenLine, RefreshCcw, Send, Lock } from 'lucide-react';
+import { ArrowLeft, AlertCircle, Loader2, PenLine, RefreshCcw, Send } from 'lucide-react';
 import SignatureCanvas from 'react-signature-canvas';
 import { updateContract } from '@/lib/actions/contracts';
 import { submitContractSignature } from '@/lib/actions/publicContracts';
@@ -31,9 +30,6 @@ export function EditContractPage({ contract }: { contract: ContractWithDetails }
   const [isPending, startTransition] = useTransition();
   const { addNotification } = useNotifications();
 
-  const statusUpper = contract.status?.toUpperCase();
-  const isLocked = statusUpper === 'ACTIVE' || statusUpper === 'RENTED' || statusUpper === 'COMPLETED';
-
   const { register, handleSubmit, watch } = useForm<EditFields>({
     defaultValues: {
       start_date: contract.start_date?.slice(0, 10) ?? '',
@@ -53,7 +49,6 @@ export function EditContractPage({ contract }: { contract: ContractWithDetails }
       : contract.total_days;
 
   const onSave = (data: EditFields) => {
-    if (isLocked) return;
     startTransition(async () => {
       await updateContract(contract.id, {
         start_date: data.start_date,
@@ -85,30 +80,13 @@ export function EditContractPage({ contract }: { contract: ContractWithDetails }
           <ArrowLeft size={20} />
         </button>
         <div>
-          <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400">
-            {isLocked ? 'Archived Contract' : 'Editing Contract'}
-          </p>
+          <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400">Editing Contract</p>
           <h1 className="text-2xl font-black tracking-tight text-slate-900 font-mono">{contract.contract_number}</h1>
         </div>
-        {isLocked ? (
-          <span className="ms-auto text-[10px] font-bold text-slate-700 bg-slate-50 border border-slate-200 px-2.5 py-1 rounded-full uppercase tracking-wide flex items-center gap-1">
-            <Lock size={10} /> Locked Archive
-          </span>
-        ) : (
-          <span className="ms-auto text-[10px] font-bold text-amber-700 bg-amber-50 border border-amber-200 px-2.5 py-1 rounded-full uppercase tracking-wide">
-            Editing invalidates signature
-          </span>
-        )}
+        <span className="ms-auto text-[10px] font-bold text-amber-700 bg-amber-50 border border-amber-200 px-2.5 py-1 rounded-full uppercase tracking-wide">
+          Editing invalidates signature
+        </span>
       </div>
-
-      {isLocked && (
-        <div className="flex items-start gap-3 p-4 rounded-2xl bg-slate-50 border border-slate-200 text-slate-600 shadow-sm">
-          <Lock size={18} className="mt-0.5 shrink-0 text-slate-500" />
-          <div className="text-xs font-semibold leading-relaxed">
-            <span className="font-bold text-slate-800">Legal Archive:</span> This contract is currently active or completed. It is locked for editing to preserve document integrity.
-          </div>
-        </div>
-      )}
 
       {/* Contract form card */}
       <div className="bg-white border border-slate-200 rounded-3xl shadow-sm overflow-hidden">
@@ -123,22 +101,22 @@ export function EditContractPage({ contract }: { contract: ContractWithDetails }
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="space-y-1.5">
               <label className="text-xs font-bold uppercase tracking-wider text-slate-500">Start Date</label>
-              <input type="date" {...register('start_date')} disabled={isLocked} className={`${inputClass} uppercase`} />
+              <input type="date" {...register('start_date')} className={`${inputClass} uppercase`} />
             </div>
             <div className="space-y-1.5">
               <label className="text-xs font-bold uppercase tracking-wider text-slate-500">End Date</label>
-              <input type="date" {...register('end_date')} disabled={isLocked} className={`${inputClass} uppercase`} />
+              <input type="date" {...register('end_date')} className={`${inputClass} uppercase`} />
             </div>
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="space-y-1.5">
               <label className="text-xs font-bold uppercase tracking-wider text-slate-500">Daily Rate (€)</label>
-              <input type="number" min="0" step="0.01" {...register('daily_rate', { valueAsNumber: true })} disabled={isLocked} className={inputClass} />
+              <input type="number" min="0" step="0.01" {...register('daily_rate', { valueAsNumber: true })} className={inputClass} />
             </div>
             <div className="space-y-1.5">
               <label className="text-xs font-bold uppercase tracking-wider text-slate-500">Security Deposit (€)</label>
-              <input type="number" min="0" step="0.01" {...register('deposit_amount', { valueAsNumber: true })} disabled={isLocked} className={inputClass} />
+              <input type="number" min="0" step="0.01" {...register('deposit_amount', { valueAsNumber: true })} className={inputClass} />
             </div>
           </div>
 
@@ -152,43 +130,30 @@ export function EditContractPage({ contract }: { contract: ContractWithDetails }
 
           <div className="space-y-1.5">
             <label className="text-xs font-bold uppercase tracking-wider text-slate-500">Notes</label>
-            <textarea {...register('notes')} rows={3} placeholder="Optional internal notes…" disabled={isLocked} className={inputClass} />
+            <textarea {...register('notes')} rows={3} placeholder="Optional internal notes…" className={inputClass} />
           </div>
 
-          {isLocked ? (
-            <div className="pt-4 border-t border-slate-100">
-              <Link
-                href={`${prefix}/contracts/${contract.id}`}
-                className="w-full py-3 bg-slate-900 hover:bg-slate-800 text-white rounded-xl font-bold transition-all text-sm flex items-center justify-center gap-2"
-              >
-                Download PDF / View Rental Terms
-              </Link>
-            </div>
-          ) : (
-            <div className="pt-4 flex items-center justify-end gap-3 border-t border-slate-100">
-              <button
-                type="button"
-                onClick={() => router.push(`${prefix}/contracts/${contract.id}`)}
-                className="px-5 py-2.5 text-slate-500 hover:text-slate-900 font-semibold transition-colors"
-              >
-                Cancel
-              </button>
-              <button
-                type="submit"
-                disabled={isPending}
-                className="px-6 py-2.5 bg-slate-900 text-white rounded-xl font-bold shadow-lg shadow-slate-900/10 hover:bg-slate-800 transition-colors disabled:opacity-50"
-              >
-                {isPending ? 'Saving…' : 'Save Changes'}
-              </button>
-            </div>
-          )}
+          <div className="pt-4 flex items-center justify-end gap-3 border-t border-slate-100">
+            <button
+              type="button"
+              onClick={() => router.push(`${prefix}/contracts/${contract.id}`)}
+              className="px-5 py-2.5 text-slate-500 hover:text-slate-900 font-semibold transition-colors"
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              disabled={isPending}
+              className="px-6 py-2.5 bg-slate-900 text-white rounded-xl font-bold shadow-lg shadow-slate-900/10 hover:bg-slate-800 transition-colors disabled:opacity-50"
+            >
+              {isPending ? 'Saving…' : 'Save Changes'}
+            </button>
+          </div>
         </form>
       </div>
 
       {/* Signature section */}
-      {!isLocked && (
-        <SignatureSectionPage contractId={contract.id} onSigned={() => router.push(`${prefix}/contracts/${contract.id}`)} />
-      )}
+      <SignatureSectionPage contractId={contract.id} onSigned={() => router.push(`${prefix}/contracts/${contract.id}`)} />
     </div>
   );
 }

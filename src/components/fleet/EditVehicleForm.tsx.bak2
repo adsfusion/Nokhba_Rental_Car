@@ -56,7 +56,7 @@ const inputClass =
 const selectClass =
   'w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-2.5 text-sm focus:border-slate-900 focus:outline-none transition-colors appearance-none cursor-pointer';
 const labelClass = 'block text-xs font-bold uppercase tracking-wider text-slate-500 mb-1.5';
-const sectionClass = 'rounded-2xl border border-slate-100 bg-slate-50/50 p-5 grid grid-cols-1 md:grid-cols-12 gap-4';
+const sectionClass = 'rounded-2xl border border-slate-100 bg-slate-50/50 p-5 space-y-4';
 const sectionTitleClass = 'text-sm font-bold text-slate-700 uppercase tracking-wide flex items-center gap-2';
 
 // Detect if a brand currently stored in the vehicle exists in the dictionary
@@ -253,7 +253,7 @@ export default function EditVehicleForm({ vehicle, contracts, tenantSlug }: Prop
             <div className={sectionClass}>
 
               {/* Vehicle Type */}
-              <div className="space-y-1.5 md:col-span-4">
+              <div className="space-y-1.5">
                 <label className={labelClass}>Vehicle Type</label>
                 <div className="relative">
                   <select
@@ -271,140 +271,142 @@ export default function EditVehicleForm({ vehicle, contracts, tenantSlug }: Prop
                 </div>
               </div>
 
-              {/* Make / Brand */}
-              <div className="space-y-1.5 md:col-span-4">
-                <label className={labelClass}>Make / Brand</label>
-                {vehicleType && makesForType.length > 0 ? (
-                  <>
-                    <div className="relative">
-                      <select
-                        required
-                        value={selectedMake}
-                        onChange={(e) => handleMakeChange(e.target.value)}
-                        className={selectClass}
-                      >
-                        <option value="">— Select make —</option>
-                        {makesForType.map((m) => (
-                          <option key={m} value={m}>{m}</option>
-                        ))}
-                      </select>
-                      <ChevronDown size={14} className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-slate-400" />
-                    </div>
-                    {selectedMake === 'Other' && (
-                      <input
-                        required
-                        type="text"
-                        placeholder="Type make name…"
-                        value={customMake}
-                        onChange={(e) => setCustomMake(e.target.value)}
-                        className={inputClass + ' mt-2'}
-                      />
-                    )}
-                  </>
-                ) : (
-                  <input
-                    required
-                    type="text"
-                    placeholder="e.g. Toyota"
-                    value={selectedMake === 'Other' ? customMake : selectedMake}
-                    onChange={(e) => {
-                      setSelectedMake('Other');
-                      setCustomMake(e.target.value);
-                    }}
-                    className={inputClass}
-                  />
-                )}
-              </div>
+              {/* Make & Model — cascading row */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                {/* Make */}
+                <div className="space-y-1.5">
+                  <label className={labelClass}>Make / Brand</label>
+                  {vehicleType && makesForType.length > 0 ? (
+                    <>
+                      <div className="relative">
+                        <select
+                          required
+                          value={selectedMake}
+                          onChange={(e) => handleMakeChange(e.target.value)}
+                          className={selectClass}
+                        >
+                          <option value="">— Select make —</option>
+                          {makesForType.map((m) => (
+                            <option key={m} value={m}>{m}</option>
+                          ))}
+                        </select>
+                        <ChevronDown size={14} className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-slate-400" />
+                      </div>
+                      {selectedMake === 'Other' && (
+                        <input
+                          required
+                          type="text"
+                          placeholder="Type make name…"
+                          value={customMake}
+                          onChange={(e) => setCustomMake(e.target.value)}
+                          className={inputClass + ' mt-2'}
+                        />
+                      )}
+                    </>
+                  ) : (
+                    <input
+                      required
+                      type="text"
+                      placeholder="e.g. Toyota"
+                      value={selectedMake === 'Other' ? customMake : selectedMake}
+                      onChange={(e) => {
+                        setSelectedMake('Other');
+                        setCustomMake(e.target.value);
+                      }}
+                      className={inputClass}
+                    />
+                  )}
+                </div>
 
-              {/* Model */}
-              <div className="space-y-1.5 md:col-span-4">
-                <label className={labelClass}>Model</label>
-                {selectedMake && selectedMake !== 'Other' && modelsForMake.length > 0 ? (
-                  <>
-                    <div className="relative">
-                      <select
-                        required
-                        value={selectedModel}
-                        onChange={(e) => {
-                          setSelectedModel(e.target.value);
-                          setCustomModel('');
-                        }}
-                        className={selectClass}
-                      >
-                        <option value="">— Select model —</option>
-                        {modelsForMake.map((m) => (
-                          <option key={m} value={m}>{m}</option>
-                        ))}
-                      </select>
-                      <ChevronDown size={14} className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-slate-400" />
-                    </div>
-                    {selectedModel === 'Other' && (
-                      <input
-                        required
-                        type="text"
-                        placeholder="Type model name…"
-                        value={customModel}
-                        onChange={(e) => setCustomModel(e.target.value)}
-                        className={inputClass + ' mt-2'}
-                      />
-                    )}
-                  </>
-                ) : (
-                  <input
-                    required
-                    type="text"
-                    placeholder="e.g. Corolla"
-                    value={selectedModel === 'Other' ? customModel : selectedModel}
-                    onChange={(e) => {
-                      setSelectedModel('Other');
-                      setCustomModel(e.target.value);
-                    }}
-                    className={inputClass}
-                  />
-                )}
-              </div>
-
-              {/* License Plate */}
-              <div className="space-y-1.5 md:col-span-4">
-                <label className={labelClass}>License Plate</label>
-                <input
-                  required
-                  type="text"
-                  value={form.license_plate}
-                  onChange={(e) => setForm({ ...form, license_plate: e.target.value })}
-                  className={inputClass}
-                />
-              </div>
-
-              {/* Year */}
-              <div className="space-y-1.5 md:col-span-2">
-                <label className={labelClass}>Year</label>
-                <div className="relative">
-                  <select
-                    required
-                    value={form.year ?? ''}
-                    onChange={(e) => setForm({ ...form, year: parseInt(e.target.value) || null })}
-                    className={selectClass}
-                  >
-                    <option value="">— Year —</option>
-                    {YEARS.map((y) => (
-                      <option key={y} value={y}>{y}</option>
-                    ))}
-                  </select>
-                  <ChevronDown size={14} className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-slate-400" />
+                {/* Model */}
+                <div className="space-y-1.5">
+                  <label className={labelClass}>Model</label>
+                  {selectedMake && selectedMake !== 'Other' && modelsForMake.length > 0 ? (
+                    <>
+                      <div className="relative">
+                        <select
+                          required
+                          value={selectedModel}
+                          onChange={(e) => {
+                            setSelectedModel(e.target.value);
+                            setCustomModel('');
+                          }}
+                          className={selectClass}
+                        >
+                          <option value="">— Select model —</option>
+                          {modelsForMake.map((m) => (
+                            <option key={m} value={m}>{m}</option>
+                          ))}
+                        </select>
+                        <ChevronDown size={14} className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-slate-400" />
+                      </div>
+                      {selectedModel === 'Other' && (
+                        <input
+                          required
+                          type="text"
+                          placeholder="Type model name…"
+                          value={customModel}
+                          onChange={(e) => setCustomModel(e.target.value)}
+                          className={inputClass + ' mt-2'}
+                        />
+                      )}
+                    </>
+                  ) : (
+                    <input
+                      required
+                      type="text"
+                      placeholder="e.g. Corolla"
+                      value={selectedModel === 'Other' ? customModel : selectedModel}
+                      onChange={(e) => {
+                        setSelectedModel('Other');
+                        setCustomModel(e.target.value);
+                      }}
+                      className={inputClass}
+                    />
+                  )}
                 </div>
               </div>
 
-              {/* VIN */}
-              <div className="space-y-1.5 md:col-span-6">
-                <label className={labelClass}>VIN / Chassis</label>
-                <input
-                  type="text"
-                  placeholder="Optional"
-                  value={form.vin || ''}
-                  onChange={(e) => setForm({ ...form, vin: e.target.value || null })}
-                  className={inputClass}
-                />
+              {/* Year, Plate, VIN */}
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                {/* Year — dropdown */}
+                <div className="space-y-1.5">
+                  <label className={labelClass}>Year</label>
+                  <div className="relative">
+                    <select
+                      required
+                      value={form.year ?? ''}
+                      onChange={(e) => setForm({ ...form, year: parseInt(e.target.value) || null })}
+                      className={selectClass}
+                    >
+                      <option value="">— Year —</option>
+                      {YEARS.map((y) => (
+                        <option key={y} value={y}>{y}</option>
+                      ))}
+                    </select>
+                    <ChevronDown size={14} className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-slate-400" />
+                  </div>
+                </div>
+                <div className="space-y-1.5">
+                  <label className={labelClass}>License Plate</label>
+                  <input
+                    required
+                    type="text"
+                    value={form.license_plate}
+                    onChange={(e) => setForm({ ...form, license_plate: e.target.value })}
+                    className={inputClass}
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <label className={labelClass}>VIN / Chassis</label>
+                  <input
+                    type="text"
+                    placeholder="Optional"
+                    value={form.vin || ''}
+                    onChange={(e) => setForm({ ...form, vin: e.target.value || null })}
+                    className={inputClass}
+                  />
+                </div>
               </div>
 
             </div>
@@ -417,68 +419,73 @@ export default function EditVehicleForm({ vehicle, contracts, tenantSlug }: Prop
               Technical Specs
             </p>
             <div className={sectionClass}>
-              {/* Color — dropdown */}
-              <div className="space-y-1.5 md:col-span-3">
-                <label className={labelClass}>Color</label>
-                <div className="relative">
-                  <select
-                    value={form.color || ''}
-                    onChange={(e) => setForm({ ...form, color: e.target.value || null })}
-                    className={selectClass}
-                  >
-                    <option value="">— Select color —</option>
-                    {COLORS.map((c) => (
-                      <option key={c} value={c}>{c}</option>
-                    ))}
-                  </select>
-                  <ChevronDown size={14} className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-slate-400" />
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                {/* Color — dropdown */}
+                <div className="space-y-1.5">
+                  <label className={labelClass}>Color</label>
+                  <div className="relative">
+                    <select
+                      value={form.color || ''}
+                      onChange={(e) => setForm({ ...form, color: e.target.value || null })}
+                      className={selectClass}
+                    >
+                      <option value="">— Select color —</option>
+                      {COLORS.map((c) => (
+                        <option key={c} value={c}>{c}</option>
+                      ))}
+                    </select>
+                    <ChevronDown size={14} className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-slate-400" />
+                  </div>
+                </div>
+                {/* Mileage */}
+                <div className="space-y-1.5">
+                  <label className={labelClass}>Current Mileage (km)</label>
+                  <input
+                    required
+                    type="number"
+                    min={0}
+                    value={form.mileage ?? 0}
+                    onChange={(e) => setForm({ ...form, mileage: parseInt(e.target.value) || 0 })}
+                    className={inputClass}
+                  />
                 </div>
               </div>
-              {/* Mileage */}
-              <div className="space-y-1.5 md:col-span-3">
-                <label className={labelClass}>Current Mileage (km)</label>
-                <input
-                  required
-                  type="number"
-                  min={0}
-                  value={form.mileage ?? 0}
-                  onChange={(e) => setForm({ ...form, mileage: parseInt(e.target.value) || 0 })}
-                  className={inputClass}
-                />
-              </div>
-              {/* Transmission */}
-              <div className="space-y-1.5 md:col-span-3">
-                <label className={labelClass}>Transmission</label>
-                <div className="relative">
-                  <select
-                    value={form.transmission || ''}
-                    onChange={(e) => setForm({ ...form, transmission: e.target.value || null })}
-                    className={selectClass}
-                  >
-                    <option value="">— Select —</option>
-                    <option value="Manual">Manual</option>
-                    <option value="Automatic">Automatic</option>
-                  </select>
-                  <ChevronDown size={14} className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-slate-400" />
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                {/* Transmission */}
+                <div className="space-y-1.5">
+                  <label className={labelClass}>Transmission</label>
+                  <div className="relative">
+                    <select
+                      value={form.transmission || ''}
+                      onChange={(e) => setForm({ ...form, transmission: e.target.value || null })}
+                      className={selectClass}
+                    >
+                      <option value="">— Select —</option>
+                      <option value="Manual">Manual</option>
+                      <option value="Automatic">Automatic</option>
+                    </select>
+                    <ChevronDown size={14} className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-slate-400" />
+                  </div>
                 </div>
-              </div>
-              {/* Fuel Type */}
-              <div className="space-y-1.5 md:col-span-3">
-                <label className={labelClass}>Fuel Type</label>
-                <div className="relative">
-                  <select
-                    value={form.fuel_type || ''}
-                    onChange={(e) => setForm({ ...form, fuel_type: e.target.value || null })}
-                    className={selectClass}
-                  >
-                    <option value="">— Select —</option>
-                    <option value="Diesel">Diesel</option>
-                    <option value="Gasoline">Gasoline</option>
-                    <option value="Electric">Electric</option>
-                    <option value="Hybrid">Hybrid</option>
-                    <option value="Other">Other</option>
-                  </select>
-                  <ChevronDown size={14} className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-slate-400" />
+                {/* Fuel Type */}
+                <div className="space-y-1.5">
+                  <label className={labelClass}>Fuel Type</label>
+                  <div className="relative">
+                    <select
+                      value={form.fuel_type || ''}
+                      onChange={(e) => setForm({ ...form, fuel_type: e.target.value || null })}
+                      className={selectClass}
+                    >
+                      <option value="">— Select —</option>
+                      <option value="Diesel">Diesel</option>
+                      <option value="Gasoline">Gasoline</option>
+                      <option value="Electric">Electric</option>
+                      <option value="Hybrid">Hybrid</option>
+                      <option value="Other">Other</option>
+                    </select>
+                    <ChevronDown size={14} className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-slate-400" />
+                  </div>
                 </div>
               </div>
             </div>
@@ -491,48 +498,53 @@ export default function EditVehicleForm({ vehicle, contracts, tenantSlug }: Prop
               Legal &amp; Financial
             </p>
             <div className={sectionClass}>
-              {/* Registration Date */}
-              <div className="space-y-1.5 md:col-span-3">
-                <label className={`${labelClass} truncate whitespace-nowrap`}>Registration Date</label>
-                <input
-                  type="date"
-                  value={form.registration_date || ''}
-                  onChange={(e) => setForm({ ...form, registration_date: e.target.value || null })}
-                  className={`${inputClass} uppercase`}
-                />
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                {/* Registration Date */}
+                <div className="space-y-1.5">
+                  <label className={labelClass}>Registration Date</label>
+                  <input
+                    type="date"
+                    value={form.registration_date || ''}
+                    onChange={(e) => setForm({ ...form, registration_date: e.target.value || null })}
+                    className={`${inputClass} uppercase`}
+                  />
+                </div>
+                {/* Insurance Expiry */}
+                <div className="space-y-1.5">
+                  <label className={labelClass}>Insurance Expiry</label>
+                  <input
+                    type="date"
+                    value={form.insurance_expiry || ''}
+                    onChange={(e) => setForm({ ...form, insurance_expiry: e.target.value || null })}
+                    className={`${inputClass} uppercase`}
+                  />
+                </div>
               </div>
-              {/* Insurance Expiry */}
-              <div className="space-y-1.5 md:col-span-3">
-                <label className={`${labelClass} truncate whitespace-nowrap`}>Insurance Expiry</label>
-                <input
-                  type="date"
-                  value={form.insurance_expiry || ''}
-                  onChange={(e) => setForm({ ...form, insurance_expiry: e.target.value || null })}
-                  className={`${inputClass} uppercase`}
-                />
-              </div>
-              {/* Technical Inspection */}
-              <div className="space-y-1.5 md:col-span-3">
-                <label className={`${labelClass} truncate whitespace-nowrap`}>Tech. Inspection</label>
-                <input
-                  type="date"
-                  value={form.technical_inspection || ''}
-                  onChange={(e) => setForm({ ...form, technical_inspection: e.target.value || null })}
-                  className={`${inputClass} uppercase`}
-                />
-              </div>
-              {/* Daily Rate */}
-              <div className="space-y-1.5 md:col-span-3">
-                <label className={`${labelClass} truncate whitespace-nowrap`}>Daily Rate (MAD)</label>
-                <input
-                  type="number"
-                  min={0}
-                  step={0.01}
-                  placeholder="0.00"
-                  value={form.daily_rate ?? ''}
-                  onChange={(e) => setForm({ ...form, daily_rate: parseFloat(e.target.value) || null })}
-                  className={inputClass}
-                />
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                {/* Technical Inspection */}
+                <div className="space-y-1.5">
+                  <label className={labelClass}>Technical Inspection Date</label>
+                  <input
+                    type="date"
+                    value={form.technical_inspection || ''}
+                    onChange={(e) => setForm({ ...form, technical_inspection: e.target.value || null })}
+                    className={`${inputClass} uppercase`}
+                  />
+                </div>
+                {/* Daily Rate */}
+                <div className="space-y-1.5">
+                  <label className={labelClass}>Daily Rate (MAD)</label>
+                  <input
+                    type="number"
+                    min={0}
+                    step={0.01}
+                    placeholder="0.00"
+                    value={form.daily_rate ?? ''}
+                    onChange={(e) => setForm({ ...form, daily_rate: parseFloat(e.target.value) || null })}
+                    className={inputClass}
+                  />
+                </div>
               </div>
             </div>
           </div>
@@ -545,7 +557,7 @@ export default function EditVehicleForm({ vehicle, contracts, tenantSlug }: Prop
             </p>
             <div className={sectionClass}>
               {/* Status */}
-              <div className="space-y-1.5 md:col-span-4">
+              <div className="space-y-1.5">
                 <label className={labelClass}>Vehicle Status</label>
                 <div className="relative">
                   <select
@@ -565,7 +577,7 @@ export default function EditVehicleForm({ vehicle, contracts, tenantSlug }: Prop
 
               {/* Maintenance fields */}
               {form.status === 'maintenance' && (
-                <div className="md:col-span-8 grid grid-cols-1 sm:grid-cols-2 gap-4 rounded-xl border border-orange-100 bg-orange-50/60 p-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 rounded-xl border border-orange-100 bg-orange-50/60 p-4">
                   <div className="space-y-1.5">
                     <label className="block text-xs font-bold uppercase text-orange-800 mb-1.5">Expected Return Date</label>
                     <input
@@ -590,10 +602,10 @@ export default function EditVehicleForm({ vehicle, contracts, tenantSlug }: Prop
 
               {/* Notes */}
               {form.status !== 'maintenance' && (
-                <div className="space-y-1.5 md:col-span-8">
+                <div className="space-y-1.5">
                   <label className={labelClass}>Notes (optional)</label>
                   <textarea
-                    rows={2}
+                    rows={3}
                     value={form.notes || ''}
                     onChange={(e) => setForm({ ...form, notes: e.target.value })}
                     className={`${inputClass} resize-none`}
@@ -603,7 +615,7 @@ export default function EditVehicleForm({ vehicle, contracts, tenantSlug }: Prop
               )}
 
               {/* Photos */}
-              <div className="space-y-3 pt-2 md:col-span-12">
+              <div className="space-y-3 pt-2">
                 <label className={labelClass}>Photos</label>
                 <div className="flex flex-wrap gap-3">
                   {(form.images || []).map((photo, i) => (

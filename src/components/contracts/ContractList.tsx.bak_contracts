@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
-import { Plus, FileText, PenLine, ClipboardCheck, Settings, Send, Eye } from 'lucide-react';
+import { Plus, FileText, PenLine, ClipboardCheck, Settings, Send } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { SignLinkPopover } from './SignLinkPopover';
 import { ProcessReturnModal } from './ProcessReturnModal';
@@ -91,9 +91,6 @@ export function ContractList({ initialContracts }: Props) {
                   className: 'bg-slate-100 text-slate-600',
                 };
 
-                const statusUpper = contract.status?.toUpperCase();
-                const isContractLocked = statusUpper === 'ACTIVE' || statusUpper === 'RENTED' || statusUpper === 'COMPLETED';
-
                 return (
                   <div
                     key={contract.id}
@@ -135,23 +132,13 @@ export function ContractList({ initialContracts }: Props) {
 
                     {/* Action buttons — navigate to edit pages */}
                     <div className="flex flex-col gap-2 shrink-0">
-                      {isContractLocked ? (
-                        <Link
-                          href={`${prefix}/contracts/${contract.id}/edit`}
-                          className="px-4 py-2 bg-slate-50 border border-slate-200 text-slate-600 rounded-xl text-sm font-semibold hover:bg-slate-100 transition-all flex items-center justify-center gap-2 whitespace-nowrap"
-                        >
-                          <Eye size={15} />
-                          View Archive
-                        </Link>
-                      ) : (
-                        <Link
-                          href={`${prefix}/contracts/${contract.id}/edit`}
-                          className="px-4 py-2 bg-white border border-slate-200 text-slate-700 rounded-xl text-sm font-semibold hover:bg-slate-50 transition-all flex items-center justify-center gap-2 whitespace-nowrap"
-                        >
-                          <Settings size={15} />
-                          Edit Contract
-                        </Link>
-                      )}
+                      <Link
+                        href={`${prefix}/contracts/${contract.id}/edit`}
+                        className="px-4 py-2 bg-white border border-slate-200 text-slate-700 rounded-xl text-sm font-semibold hover:bg-slate-50 transition-all flex items-center justify-center gap-2 whitespace-nowrap"
+                      >
+                        <Settings size={15} />
+                        Edit Contract
+                      </Link>
                       <Link
                         href={`${prefix}/clients/${contract.client_id}/edit`}
                         className="px-4 py-2 bg-white border border-slate-200 text-slate-700 rounded-xl text-sm font-semibold hover:bg-slate-50 transition-all flex items-center justify-center gap-2 whitespace-nowrap"
