@@ -192,9 +192,29 @@ export default function EditVehicleForm({ vehicle, contracts, tenantSlug }: Prop
     });
   }
 
-  return (
-    <div className="max-w-[896px] w-full mx-auto space-y-6">
+  const vehicleContracts = useMemo(() => {
+    return contracts.filter((c) => c.vehicle_id === vehicle.id && c.status !== 'cancelled');
+  }, [contracts, vehicle.id]);
 
+  const totalRevenue = useMemo(() => {
+    return vehicleContracts.reduce((sum, c) => sum + Number(c.total_amount || 0), 0);
+  }, [vehicleContracts]);
+
+  const totalTrips = vehicleContracts.length;
+
+  function makePrimary(index: number) {
+    setForm((prev) => {
+      const images = [...(prev.images || [])];
+      if (index <= 0 || index >= images.length) return prev;
+      const target = images[index];
+      images.splice(index, 1);
+      images.unshift(target);
+      return { ...prev, images };
+    });
+  }
+
+  return (
+    <form onSubmit={handleSubmit} className="max-w-[1200px] w-full mx-auto space-y-6" dir="ltr">
       {/* Back link */}
       <div className="flex items-center gap-4">
         <Link
@@ -206,448 +226,528 @@ export default function EditVehicleForm({ vehicle, contracts, tenantSlug }: Prop
         </Link>
       </div>
 
-      {/* Page header */}
-      <div className="flex items-center justify-between gap-4 flex-wrap">
-        <div className="flex items-center gap-3">
-          <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-slate-100 text-slate-500 overflow-hidden">
-            {form.images && form.images.length > 0 ? (
-              <img src={form.images[0]} alt={vehicle.brand} className="h-full w-full object-cover" />
-            ) : (
-              <Car size={24} />
-            )}
-          </div>
-          <div>
-            <h1 className="text-2xl font-bold text-slate-900 tracking-tight">
-              {vehicle.brand} {vehicle.model}
-            </h1>
-            <p className="text-slate-500 text-sm">{vehicle.year} · {vehicle.license_plate}</p>
+      {/* Page Header */}
+      <div className="flex justify-between items-end mb-6 flex-wrap gap-4">
+        <div>
+          <h2 className="text-2xl font-bold tracking-tight text-slate-900 mb-1">
+            {form.brand || vehicle.brand} {form.model || vehicle.model}
+          </h2>
+          <div className="flex items-center gap-2">
+            <span className="text-sm text-slate-500">
+              {form.license_plate || vehicle.license_plate} • {form.year || vehicle.year} Model
+            </span>
+            <span className="px-2.5 py-0.5 bg-slate-50 border border-slate-200 rounded font-semibold text-xs text-slate-700 flex items-center gap-1.5 capitalize">
+              <div className={`w-1.5 h-1.5 rounded-full ${
+                form.status === 'available' ? 'bg-green-500' :
+                form.status === 'rented' ? 'bg-blue-500' :
+                form.status === 'maintenance' ? 'bg-amber-500' : 'bg-slate-500'
+              }`}></div>
+              {form.status}
+            </span>
           </div>
         </div>
-
-        {vehicle.status === 'rented' && (
+        <div className="flex gap-2">
+          {vehicle.status === 'rented' && (
+            <Link
+              href={`/${tenantSlug}/fleet/${vehicle.id}/return`}
+              className="flex items-center gap-2 px-4 py-2 bg-white border border-slate-200 text-slate-700 rounded-xl text-sm font-semibold hover:bg-slate-50 transition-colors shadow-sm"
+            >
+              <ClipboardCheck size={16} />
+              Process Return
+            </Link>
+          )}
           <Link
-            href={`/${tenantSlug}/fleet/${vehicle.id}/return`}
-            className="flex items-center gap-2 px-4 py-2 bg-white border border-slate-200 text-slate-700 rounded-xl text-sm font-semibold hover:bg-slate-50 transition-colors shadow-sm"
+            href={`/${tenantSlug}/fleet`}
+            className="px-4 py-2 border border-slate-200 rounded-xl text-slate-700 hover:bg-slate-50 font-semibold text-sm transition-colors"
           >
-            <ClipboardCheck size={16} />
-            Process Return
+            Cancel
           </Link>
-        )}
+          <button
+            type="submit"
+            disabled={isPending}
+            className="px-4 py-2 bg-slate-900 text-white rounded-xl font-bold text-sm hover:bg-slate-800 transition-colors border border-transparent shadow-sm disabled:opacity-50"
+          >
+            {isPending ? 'Saving…' : 'Save Changes'}
+          </button>
+        </div>
       </div>
 
-      {/* ── Form card ─────────────────────────────────────────────────────────── */}
-      <div className="bg-white border border-slate-200 rounded-3xl shadow-sm overflow-hidden">
-        <div className="px-6 py-5 border-b border-slate-100 bg-gradient-to-r from-slate-50 to-white">
-          <h2 className="font-bold text-slate-900 text-lg">Edit Vehicle Details</h2>
-          <p className="text-slate-500 text-sm mt-0.5">Update the information below across all sections.</p>
-        </div>
+      {/* Two Column Grid */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {/* Left Column (Primary Info & Cinematic Gallery) */}
+        <div className="lg:col-span-2 space-y-6">
+          {/* Cinematic Image Gallery */}
+          <div className="bg-white border border-slate-200 rounded-3xl p-5 shadow-sm">
+            <div className="aspect-video w-full bg-slate-50 rounded-2xl border border-slate-200 mb-4 overflow-hidden relative group cursor-pointer">
+              {form.images && form.images.length > 0 ? (
+                <>
+                  <img alt={vehicle.brand} className="w-full h-full object-cover" src={form.images[0]} />
+                  <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                    <label className="bg-white text-slate-900 px-4 py-2 rounded-xl font-bold text-sm flex items-center gap-1.5 shadow cursor-pointer">
+                      <ImagePlus size={16} /> Change Primary Photo
+                      <input
+                        type="file"
+                        accept="image/*"
+                        className="hidden"
+                        onChange={(e) => handleImageUpload(e.target.files)}
+                      />
+                    </label>
+                  </div>
+                </>
+              ) : (
+                <label className="flex flex-col items-center justify-center w-full h-full cursor-pointer hover:bg-slate-100/50 transition-colors">
+                  <ImagePlus size={36} className="mb-2 text-slate-400" />
+                  <span className="font-bold text-sm text-slate-600">Upload Vehicle Photos</span>
+                  <span className="text-xs text-slate-400 mt-1">Select one or more images</span>
+                  <input
+                    type="file"
+                    accept="image/*"
+                    multiple
+                    className="hidden"
+                    onChange={(e) => handleImageUpload(e.target.files)}
+                  />
+                </label>
+              )}
+            </div>
 
-        <form onSubmit={handleSubmit} className="p-6 space-y-8">
-
-          {/* ── SECTION 1: Basic Info ─────────────────────────────────────────── */}
-          <div className="space-y-4">
-            <p className={sectionTitleClass}>
-              <span className="flex h-5 w-5 items-center justify-center rounded-full bg-slate-900 text-[10px] font-black text-white">1</span>
-              Basic Info
-            </p>
-            <div className={sectionClass}>
-
-              {/* Vehicle Type */}
-              <div className="space-y-1.5 md:col-span-4">
-                <label className={labelClass}>Vehicle Type</label>
-                <div className="relative">
-                  <select
-                    value={vehicleType}
-                    onChange={(e) => handleTypeChange(e.target.value)}
-                    className={selectClass}
+            <div className="grid grid-cols-4 gap-3">
+              {form.images && form.images.map((photo, i) => {
+                const isPrimary = i === 0;
+                return (
+                  <div
+                    key={i}
+                    className={`aspect-video rounded-xl border overflow-hidden cursor-pointer relative group transition-all ${
+                      isPrimary ? 'border-slate-900 ring-2 ring-slate-900/10' : 'border-slate-200 hover:border-slate-400'
+                    }`}
+                    onClick={() => !isPrimary && makePrimary(i)}
                   >
-                    <option value="">— Select type —</option>
-                    {VEHICLE_TYPES.map((t) => (
-                      <option key={t} value={t}>{t}</option>
-                    ))}
-                    <option value="Other">Other</option>
-                  </select>
-                  <ChevronDown size={14} className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-slate-400" />
-                </div>
-              </div>
+                    <img src={photo} alt="" className="w-full h-full object-cover" />
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        removeImage(i);
+                      }}
+                      className="absolute top-1 right-1 p-1.5 bg-black/60 hover:bg-red-600 text-white rounded-lg opacity-0 group-hover:opacity-100 transition-opacity"
+                      title="Delete image"
+                    >
+                      <Trash2 size={12} />
+                    </button>
+                    {isPrimary && (
+                      <div className="absolute bottom-1 left-1 px-1.5 py-0.5 bg-slate-900/90 text-white text-[8px] font-bold uppercase rounded tracking-wider">
+                        Primary
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
 
-              {/* Make / Brand */}
-              <div className="space-y-1.5 md:col-span-4">
-                <label className={labelClass}>Make / Brand</label>
-                {vehicleType && makesForType.length > 0 ? (
-                  <>
+              <label className="aspect-video bg-white rounded-xl border border-dashed border-slate-200 flex flex-col items-center justify-center text-slate-400 cursor-pointer hover:bg-slate-50 hover:text-slate-600 transition-colors">
+                <ImagePlus size={18} className="mb-1 text-slate-400" />
+                <span className="text-[10px] font-bold">Add Photo</span>
+                <input
+                  type="file"
+                  accept="image/*"
+                  multiple
+                  className="hidden"
+                  onChange={(e) => handleImageUpload(e.target.files)}
+                />
+              </label>
+            </div>
+          </div>
+
+          {/* Form Card */}
+          <div className="bg-white border border-slate-200 rounded-3xl shadow-sm overflow-hidden">
+            <div className="px-6 py-5 border-b border-slate-100 bg-gradient-to-r from-slate-50 to-white">
+              <h2 className="font-bold text-slate-900 text-lg">Edit Vehicle Details</h2>
+              <p className="text-slate-500 text-sm mt-0.5">Update the information below across all sections.</p>
+            </div>
+
+            <div className="p-6 space-y-8">
+              {/* ── SECTION 1: Basic Info ─────────────────────────────────────────── */}
+              <div className="space-y-4">
+                <p className={sectionTitleClass}>
+                  <span className="flex h-5 w-5 items-center justify-center rounded-full bg-slate-900 text-[10px] font-black text-white">1</span>
+                  Basic Info
+                </p>
+                <div className={sectionClass}>
+                  {/* Vehicle Type */}
+                  <div className="space-y-1.5 md:col-span-4">
+                    <label className={labelClass}>Vehicle Type</label>
                     <div className="relative">
                       <select
-                        required
-                        value={selectedMake}
-                        onChange={(e) => handleMakeChange(e.target.value)}
+                        value={vehicleType}
+                        onChange={(e) => handleTypeChange(e.target.value)}
                         className={selectClass}
                       >
-                        <option value="">— Select make —</option>
-                        {makesForType.map((m) => (
-                          <option key={m} value={m}>{m}</option>
+                        <option value="">— Select type —</option>
+                        {VEHICLE_TYPES.map((t) => (
+                          <option key={t} value={t}>{t}</option>
                         ))}
+                        <option value="Other">Other</option>
                       </select>
                       <ChevronDown size={14} className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-slate-400" />
                     </div>
-                    {selectedMake === 'Other' && (
+                  </div>
+
+                  {/* Make / Brand */}
+                  <div className="space-y-1.5 md:col-span-4">
+                    <label className={labelClass}>Make / Brand</label>
+                    {vehicleType && makesForType.length > 0 ? (
+                      <>
+                        <div className="relative">
+                          <select
+                            required
+                            value={selectedMake}
+                            onChange={(e) => handleMakeChange(e.target.value)}
+                            className={selectClass}
+                          >
+                            <option value="">— Select make —</option>
+                            {makesForType.map((m) => (
+                              <option key={m} value={m}>{m}</option>
+                            ))}
+                          </select>
+                          <ChevronDown size={14} className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-slate-400" />
+                        </div>
+                        {selectedMake === 'Other' && (
+                          <input
+                            required
+                            type="text"
+                            placeholder="Type make name…"
+                            value={customMake}
+                            onChange={(e) => setCustomMake(e.target.value)}
+                            className={inputClass + ' mt-2'}
+                          />
+                        )}
+                      </>
+                    ) : (
                       <input
                         required
                         type="text"
-                        placeholder="Type make name…"
-                        value={customMake}
-                        onChange={(e) => setCustomMake(e.target.value)}
-                        className={inputClass + ' mt-2'}
-                      />
-                    )}
-                  </>
-                ) : (
-                  <input
-                    required
-                    type="text"
-                    placeholder="e.g. Toyota"
-                    value={selectedMake === 'Other' ? customMake : selectedMake}
-                    onChange={(e) => {
-                      setSelectedMake('Other');
-                      setCustomMake(e.target.value);
-                    }}
-                    className={inputClass}
-                  />
-                )}
-              </div>
-
-              {/* Model */}
-              <div className="space-y-1.5 md:col-span-4">
-                <label className={labelClass}>Model</label>
-                {selectedMake && selectedMake !== 'Other' && modelsForMake.length > 0 ? (
-                  <>
-                    <div className="relative">
-                      <select
-                        required
-                        value={selectedModel}
+                        placeholder="e.g. Toyota"
+                        value={selectedMake === 'Other' ? customMake : selectedMake}
                         onChange={(e) => {
-                          setSelectedModel(e.target.value);
-                          setCustomModel('');
+                          setSelectedMake('Other');
+                          setCustomMake(e.target.value);
                         }}
-                        className={selectClass}
-                      >
-                        <option value="">— Select model —</option>
-                        {modelsForMake.map((m) => (
-                          <option key={m} value={m}>{m}</option>
-                        ))}
-                      </select>
-                      <ChevronDown size={14} className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-slate-400" />
-                    </div>
-                    {selectedModel === 'Other' && (
+                        className={inputClass}
+                      />
+                    )}
+                  </div>
+
+                  {/* Model */}
+                  <div className="space-y-1.5 md:col-span-4">
+                    <label className={labelClass}>Model</label>
+                    {selectedMake && selectedMake !== 'Other' && modelsForMake.length > 0 ? (
+                      <>
+                        <div className="relative">
+                          <select
+                            required
+                            value={selectedModel}
+                            onChange={(e) => {
+                              setSelectedModel(e.target.value);
+                              setCustomModel('');
+                            }}
+                            className={selectClass}
+                          >
+                            <option value="">— Select model —</option>
+                            {modelsForMake.map((m) => (
+                              <option key={m} value={m}>{m}</option>
+                            ))}
+                          </select>
+                          <ChevronDown size={14} className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-slate-400" />
+                        </div>
+                        {selectedModel === 'Other' && (
+                          <input
+                            required
+                            type="text"
+                            placeholder="Type model name…"
+                            value={customModel}
+                            onChange={(e) => setCustomModel(e.target.value)}
+                            className={inputClass + ' mt-2'}
+                          />
+                        )}
+                      </>
+                    ) : (
                       <input
                         required
                         type="text"
-                        placeholder="Type model name…"
-                        value={customModel}
-                        onChange={(e) => setCustomModel(e.target.value)}
-                        className={inputClass + ' mt-2'}
+                        placeholder="e.g. Corolla"
+                        value={selectedModel === 'Other' ? customModel : selectedModel}
+                        onChange={(e) => {
+                          setSelectedModel('Other');
+                          setCustomModel(e.target.value);
+                        }}
+                        className={inputClass}
                       />
                     )}
-                  </>
-                ) : (
-                  <input
-                    required
-                    type="text"
-                    placeholder="e.g. Corolla"
-                    value={selectedModel === 'Other' ? customModel : selectedModel}
-                    onChange={(e) => {
-                      setSelectedModel('Other');
-                      setCustomModel(e.target.value);
-                    }}
-                    className={inputClass}
-                  />
-                )}
-              </div>
+                  </div>
 
-              {/* License Plate */}
-              <div className="space-y-1.5 md:col-span-4">
-                <label className={labelClass}>License Plate</label>
-                <input
-                  required
-                  type="text"
-                  value={form.license_plate}
-                  onChange={(e) => setForm({ ...form, license_plate: e.target.value })}
-                  className={inputClass}
-                />
-              </div>
-
-              {/* Year */}
-              <div className="space-y-1.5 md:col-span-2">
-                <label className={labelClass}>Year</label>
-                <div className="relative">
-                  <select
-                    required
-                    value={form.year ?? ''}
-                    onChange={(e) => setForm({ ...form, year: parseInt(e.target.value) || null })}
-                    className={selectClass}
-                  >
-                    <option value="">— Year —</option>
-                    {YEARS.map((y) => (
-                      <option key={y} value={y}>{y}</option>
-                    ))}
-                  </select>
-                  <ChevronDown size={14} className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-slate-400" />
-                </div>
-              </div>
-
-              {/* VIN */}
-              <div className="space-y-1.5 md:col-span-6">
-                <label className={labelClass}>VIN / Chassis</label>
-                <input
-                  type="text"
-                  placeholder="Optional"
-                  value={form.vin || ''}
-                  onChange={(e) => setForm({ ...form, vin: e.target.value || null })}
-                  className={inputClass}
-                />
-              </div>
-
-            </div>
-          </div>
-
-          {/* ── SECTION 2: Technical Specs ────────────────────────────────────── */}
-          <div className="space-y-4">
-            <p className={sectionTitleClass}>
-              <span className="flex h-5 w-5 items-center justify-center rounded-full bg-slate-900 text-[10px] font-black text-white">2</span>
-              Technical Specs
-            </p>
-            <div className={sectionClass}>
-              {/* Color — dropdown */}
-              <div className="space-y-1.5 md:col-span-3">
-                <label className={labelClass}>Color</label>
-                <div className="relative">
-                  <select
-                    value={form.color || ''}
-                    onChange={(e) => setForm({ ...form, color: e.target.value || null })}
-                    className={selectClass}
-                  >
-                    <option value="">— Select color —</option>
-                    {COLORS.map((c) => (
-                      <option key={c} value={c}>{c}</option>
-                    ))}
-                  </select>
-                  <ChevronDown size={14} className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-slate-400" />
-                </div>
-              </div>
-              {/* Mileage */}
-              <div className="space-y-1.5 md:col-span-3">
-                <label className={labelClass}>Current Mileage (km)</label>
-                <input
-                  required
-                  type="number"
-                  min={0}
-                  value={form.mileage ?? 0}
-                  onChange={(e) => setForm({ ...form, mileage: parseInt(e.target.value) || 0 })}
-                  className={inputClass}
-                />
-              </div>
-              {/* Transmission */}
-              <div className="space-y-1.5 md:col-span-3">
-                <label className={labelClass}>Transmission</label>
-                <div className="relative">
-                  <select
-                    value={form.transmission || ''}
-                    onChange={(e) => setForm({ ...form, transmission: e.target.value || null })}
-                    className={selectClass}
-                  >
-                    <option value="">— Select —</option>
-                    <option value="Manual">Manual</option>
-                    <option value="Automatic">Automatic</option>
-                  </select>
-                  <ChevronDown size={14} className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-slate-400" />
-                </div>
-              </div>
-              {/* Fuel Type */}
-              <div className="space-y-1.5 md:col-span-3">
-                <label className={labelClass}>Fuel Type</label>
-                <div className="relative">
-                  <select
-                    value={form.fuel_type || ''}
-                    onChange={(e) => setForm({ ...form, fuel_type: e.target.value || null })}
-                    className={selectClass}
-                  >
-                    <option value="">— Select —</option>
-                    <option value="Diesel">Diesel</option>
-                    <option value="Gasoline">Gasoline</option>
-                    <option value="Electric">Electric</option>
-                    <option value="Hybrid">Hybrid</option>
-                    <option value="Other">Other</option>
-                  </select>
-                  <ChevronDown size={14} className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-slate-400" />
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* ── SECTION 3: Legal & Financial ─────────────────────────────────── */}
-          <div className="space-y-4">
-            <p className={sectionTitleClass}>
-              <span className="flex h-5 w-5 items-center justify-center rounded-full bg-slate-900 text-[10px] font-black text-white">3</span>
-              Legal &amp; Financial
-            </p>
-            <div className={sectionClass}>
-              {/* Registration Date */}
-              <div className="space-y-1.5 md:col-span-3">
-                <label className={`${labelClass} truncate whitespace-nowrap`}>Registration Date</label>
-                <input
-                  type="date"
-                  value={form.registration_date || ''}
-                  onChange={(e) => setForm({ ...form, registration_date: e.target.value || null })}
-                  className={`${inputClass} uppercase`}
-                />
-              </div>
-              {/* Insurance Expiry */}
-              <div className="space-y-1.5 md:col-span-3">
-                <label className={`${labelClass} truncate whitespace-nowrap`}>Insurance Expiry</label>
-                <input
-                  type="date"
-                  value={form.insurance_expiry || ''}
-                  onChange={(e) => setForm({ ...form, insurance_expiry: e.target.value || null })}
-                  className={`${inputClass} uppercase`}
-                />
-              </div>
-              {/* Technical Inspection */}
-              <div className="space-y-1.5 md:col-span-3">
-                <label className={`${labelClass} truncate whitespace-nowrap`}>Tech. Inspection</label>
-                <input
-                  type="date"
-                  value={form.technical_inspection || ''}
-                  onChange={(e) => setForm({ ...form, technical_inspection: e.target.value || null })}
-                  className={`${inputClass} uppercase`}
-                />
-              </div>
-              {/* Daily Rate */}
-              <div className="space-y-1.5 md:col-span-3">
-                <label className={`${labelClass} truncate whitespace-nowrap`}>Daily Rate (MAD)</label>
-                <input
-                  type="number"
-                  min={0}
-                  step={0.01}
-                  placeholder="0.00"
-                  value={form.daily_rate ?? ''}
-                  onChange={(e) => setForm({ ...form, daily_rate: parseFloat(e.target.value) || null })}
-                  className={inputClass}
-                />
-              </div>
-            </div>
-          </div>
-
-          {/* ── SECTION 4: Status & Media ─────────────────────────────────────── */}
-          <div className="space-y-4">
-            <p className={sectionTitleClass}>
-              <span className="flex h-5 w-5 items-center justify-center rounded-full bg-slate-900 text-[10px] font-black text-white">4</span>
-              Status &amp; Media
-            </p>
-            <div className={sectionClass}>
-              {/* Status */}
-              <div className="space-y-1.5 md:col-span-4">
-                <label className={labelClass}>Vehicle Status</label>
-                <div className="relative">
-                  <select
-                    required
-                    value={form.status}
-                    onChange={(e) => setForm({ ...form, status: e.target.value as Vehicle['status'] })}
-                    className={selectClass}
-                  >
-                    <option value="available">Available</option>
-                    <option value="rented">In Use / Rented</option>
-                    <option value="maintenance">Maintenance</option>
-                    <option value="inactive">Inactive</option>
-                  </select>
-                  <ChevronDown size={14} className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-slate-400" />
-                </div>
-              </div>
-
-              {/* Maintenance fields */}
-              {form.status === 'maintenance' && (
-                <div className="md:col-span-8 grid grid-cols-1 sm:grid-cols-2 gap-4 rounded-xl border border-orange-100 bg-orange-50/60 p-4">
-                  <div className="space-y-1.5">
-                    <label className="block text-xs font-bold uppercase text-orange-800 mb-1.5">Expected Return Date</label>
+                  {/* License Plate */}
+                  <div className="space-y-1.5 md:col-span-4">
+                    <label className={labelClass}>License Plate</label>
                     <input
-                      type="date"
-                      value={form.updated_at ? form.updated_at.slice(0, 10) : ''}
-                      onChange={(e) => setForm({ ...form, updated_at: e.target.value })}
-                      className="w-full rounded-xl border border-orange-200 bg-white px-4 py-2.5 text-sm focus:border-orange-500 focus:outline-none"
+                      required
+                      type="text"
+                      value={form.license_plate}
+                      onChange={(e) => setForm({ ...form, license_plate: e.target.value })}
+                      className={inputClass}
                     />
                   </div>
-                  <div className="space-y-1.5">
-                    <label className="block text-xs font-bold uppercase text-orange-800 mb-1.5">Reason</label>
+
+                  {/* Year */}
+                  <div className="space-y-1.5 md:col-span-2">
+                    <label className={labelClass}>Year</label>
+                    <div className="relative">
+                      <select
+                        required
+                        value={form.year ?? ''}
+                        onChange={(e) => setForm({ ...form, year: parseInt(e.target.value) || null })}
+                        className={selectClass}
+                      >
+                        <option value="">— Year —</option>
+                        {YEARS.map((y) => (
+                          <option key={y} value={y}>{y}</option>
+                        ))}
+                      </select>
+                      <ChevronDown size={14} className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-slate-400" />
+                    </div>
+                  </div>
+
+                  {/* VIN */}
+                  <div className="space-y-1.5 md:col-span-6">
+                    <label className={labelClass}>VIN / Chassis</label>
                     <input
                       type="text"
-                      placeholder="e.g. Broken windshield"
-                      value={form.notes || ''}
-                      onChange={(e) => setForm({ ...form, notes: e.target.value })}
-                      className="w-full rounded-xl border border-orange-200 bg-white px-4 py-2.5 text-sm focus:border-orange-500 focus:outline-none"
+                      placeholder="Optional"
+                      value={form.vin || ''}
+                      onChange={(e) => setForm({ ...form, vin: e.target.value || null })}
+                      className={inputClass}
                     />
                   </div>
                 </div>
-              )}
+              </div>
 
-              {/* Notes */}
-              {form.status !== 'maintenance' && (
-                <div className="space-y-1.5 md:col-span-8">
-                  <label className={labelClass}>Notes (optional)</label>
-                  <textarea
-                    rows={2}
-                    value={form.notes || ''}
-                    onChange={(e) => setForm({ ...form, notes: e.target.value })}
-                    className={`${inputClass} resize-none`}
-                    placeholder="Any additional notes about this vehicle…"
-                  />
-                </div>
-              )}
-
-              {/* Photos */}
-              <div className="space-y-3 pt-2 md:col-span-12">
-                <label className={labelClass}>Photos</label>
-                <div className="flex flex-wrap gap-3">
-                  {(form.images || []).map((photo, i) => (
-                    <div key={i} className="group relative h-24 w-24 overflow-hidden rounded-xl border border-slate-200">
-                      <img src={photo} alt="" className="h-full w-full object-cover" />
-                      <button
-                        type="button"
-                        onClick={() => removeImage(i)}
-                        className="absolute inset-0 flex items-center justify-center bg-black/50 text-white opacity-0 transition-all group-hover:opacity-100"
+              {/* ── SECTION 2: Technical Specs ────────────────────────────────────── */}
+              <div className="space-y-4">
+                <p className={sectionTitleClass}>
+                  <span className="flex h-5 w-5 items-center justify-center rounded-full bg-slate-900 text-[10px] font-black text-white">2</span>
+                  Technical Specs
+                </p>
+                <div className={sectionClass}>
+                  {/* Color — dropdown */}
+                  <div className="space-y-1.5 md:col-span-3">
+                    <label className={labelClass}>Color</label>
+                    <div className="relative">
+                      <select
+                        value={form.color || ''}
+                        onChange={(e) => setForm({ ...form, color: e.target.value || null })}
+                        className={selectClass}
                       >
-                        <Trash2 size={20} />
-                      </button>
+                        <option value="">— Select color —</option>
+                        {COLORS.map((c) => (
+                          <option key={c} value={c}>{c}</option>
+                        ))}
+                      </select>
+                      <ChevronDown size={14} className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-slate-400" />
                     </div>
-                  ))}
-                  <label className="flex h-24 w-24 cursor-pointer flex-col items-center justify-center rounded-xl border-2 border-dashed border-slate-300 text-slate-400 transition-colors hover:border-slate-400 hover:bg-slate-50 hover:text-slate-600">
-                    <ImagePlus size={24} className="mb-1" />
-                    <span className="text-[10px] font-bold">Add Photo</span>
-                    <input type="file" accept="image/*" multiple className="hidden"
-                      onChange={(e) => handleImageUpload(e.target.files)} />
-                  </label>
+                  </div>
+                  {/* Mileage */}
+                  <div className="space-y-1.5 md:col-span-3">
+                    <label className={labelClass}>Current Mileage (km)</label>
+                    <input
+                      required
+                      type="number"
+                      min={0}
+                      value={form.mileage ?? 0}
+                      onChange={(e) => setForm({ ...form, mileage: parseInt(e.target.value) || 0 })}
+                      className={inputClass}
+                    />
+                  </div>
+                  {/* Transmission */}
+                  <div className="space-y-1.5 md:col-span-3">
+                    <label className={labelClass}>Transmission</label>
+                    <div className="relative">
+                      <select
+                        value={form.transmission || ''}
+                        onChange={(e) => setForm({ ...form, transmission: e.target.value || null })}
+                        className={selectClass}
+                      >
+                        <option value="">— Select —</option>
+                        <option value="Manual">Manual</option>
+                        <option value="Automatic">Automatic</option>
+                      </select>
+                      <ChevronDown size={14} className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-slate-400" />
+                    </div>
+                  </div>
+                  {/* Fuel Type */}
+                  <div className="space-y-1.5 md:col-span-3">
+                    <label className={labelClass}>Fuel Type</label>
+                    <div className="relative">
+                      <select
+                        value={form.fuel_type || ''}
+                        onChange={(e) => setForm({ ...form, fuel_type: e.target.value || null })}
+                        className={selectClass}
+                      >
+                        <option value="">— Select —</option>
+                        <option value="Diesel">Diesel</option>
+                        <option value="Gasoline">Gasoline</option>
+                        <option value="Electric">Electric</option>
+                        <option value="Hybrid">Hybrid</option>
+                        <option value="Other">Other</option>
+                      </select>
+                      <ChevronDown size={14} className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-slate-400" />
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* ── SECTION 3: Legal & Financial ─────────────────────────────────── */}
+              <div className="space-y-4">
+                <p className={sectionTitleClass}>
+                  <span className="flex h-5 w-5 items-center justify-center rounded-full bg-slate-900 text-[10px] font-black text-white">3</span>
+                  Legal &amp; Financial
+                </p>
+                <div className={sectionClass}>
+                  {/* Registration Date */}
+                  <div className="space-y-1.5 md:col-span-3">
+                    <label className={`${labelClass} truncate whitespace-nowrap`}>Registration Date</label>
+                    <input
+                      type="date"
+                      value={form.registration_date || ''}
+                      onChange={(e) => setForm({ ...form, registration_date: e.target.value || null })}
+                      className={`${inputClass} uppercase`}
+                    />
+                  </div>
+                  {/* Insurance Expiry */}
+                  <div className="space-y-1.5 md:col-span-3">
+                    <label className={`${labelClass} truncate whitespace-nowrap`}>Insurance Expiry</label>
+                    <input
+                      type="date"
+                      value={form.insurance_expiry || ''}
+                      onChange={(e) => setForm({ ...form, insurance_expiry: e.target.value || null })}
+                      className={`${inputClass} uppercase`}
+                    />
+                  </div>
+                  {/* Technical Inspection */}
+                  <div className="space-y-1.5 md:col-span-3">
+                    <label className={`${labelClass} truncate whitespace-nowrap`}>Tech. Inspection</label>
+                    <input
+                      type="date"
+                      value={form.technical_inspection || ''}
+                      onChange={(e) => setForm({ ...form, technical_inspection: e.target.value || null })}
+                      className={`${inputClass} uppercase`}
+                    />
+                  </div>
+                  {/* Daily Rate */}
+                  <div className="space-y-1.5 md:col-span-3">
+                    <label className={`${labelClass} truncate whitespace-nowrap`}>Daily Rate (MAD)</label>
+                    <input
+                      type="number"
+                      min={0}
+                      step={0.01}
+                      placeholder="0.00"
+                      value={form.daily_rate ?? ''}
+                      onChange={(e) => setForm({ ...form, daily_rate: parseFloat(e.target.value) || null })}
+                      className={inputClass}
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* ── SECTION 4: Status & Media ─────────────────────────────────────── */}
+              <div className="space-y-4">
+                <p className={sectionTitleClass}>
+                  <span className="flex h-5 w-5 items-center justify-center rounded-full bg-slate-900 text-[10px] font-black text-white">4</span>
+                  Status &amp; Media
+                </p>
+                <div className={sectionClass}>
+                  {/* Status */}
+                  <div className="space-y-1.5 md:col-span-4">
+                    <label className={labelClass}>Vehicle Status</label>
+                    <div className="relative">
+                      <select
+                        required
+                        value={form.status}
+                        onChange={(e) => setForm({ ...form, status: e.target.value as Vehicle['status'] })}
+                        className={selectClass}
+                      >
+                        <option value="available">Available</option>
+                        <option value="rented">In Use / Rented</option>
+                        <option value="maintenance">Maintenance</option>
+                        <option value="inactive">Inactive</option>
+                      </select>
+                      <ChevronDown size={14} className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-slate-400" />
+                    </div>
+                  </div>
+
+                  {/* Maintenance fields */}
+                  {form.status === 'maintenance' && (
+                    <div className="md:col-span-8 grid grid-cols-1 sm:grid-cols-2 gap-4 rounded-xl border border-orange-100 bg-orange-50/60 p-4">
+                      <div className="space-y-1.5">
+                        <label className="block text-xs font-bold uppercase text-orange-800 mb-1.5">Expected Return Date</label>
+                        <input
+                          type="date"
+                          value={form.updated_at ? form.updated_at.slice(0, 10) : ''}
+                          onChange={(e) => setForm({ ...form, updated_at: e.target.value })}
+                          className="w-full rounded-xl border border-orange-200 bg-white px-4 py-2.5 text-sm focus:border-orange-500 focus:outline-none"
+                        />
+                      </div>
+                      <div className="space-y-1.5">
+                        <label className="block text-xs font-bold uppercase text-orange-800 mb-1.5">Reason</label>
+                        <input
+                          type="text"
+                          placeholder="e.g. Broken windshield"
+                          value={form.notes || ''}
+                          onChange={(e) => setForm({ ...form, notes: e.target.value })}
+                          className="w-full rounded-xl border border-orange-200 bg-white px-4 py-2.5 text-sm focus:border-orange-500 focus:outline-none"
+                        />
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Notes */}
+                  {form.status !== 'maintenance' && (
+                    <div className="space-y-1.5 md:col-span-8">
+                      <label className={labelClass}>Notes (optional)</label>
+                      <textarea
+                        rows={2}
+                        value={form.notes || ''}
+                        onChange={(e) => setForm({ ...form, notes: e.target.value })}
+                        className={`${inputClass} resize-none`}
+                        placeholder="Any additional notes about this vehicle…"
+                      />
+                    </div>
+                  )}
                 </div>
               </div>
             </div>
           </div>
+        </div>
 
-          {/* ── Actions ──────────────────────────────────────────────────────── */}
-          <div className="pt-2 flex items-center justify-end gap-3 border-t border-slate-100">
-            <Link
-              href={`/${tenantSlug}/fleet`}
-              className="px-5 py-2.5 text-slate-500 hover:text-slate-900 font-semibold transition-colors text-sm"
-            >
-              Cancel
-            </Link>
-            <button
-              type="submit"
-              disabled={isPending}
-              className="px-6 py-2.5 bg-slate-900 text-white rounded-xl font-bold shadow-lg shadow-slate-900/10 hover:bg-slate-800 transition-colors disabled:opacity-50 text-sm"
-            >
-              {isPending ? 'Saving…' : 'Save Changes'}
-            </button>
+        {/* Right Column (Vehicle Stats) */}
+        <div className="space-y-6">
+          <div className="bg-white border border-slate-200 rounded-3xl p-6 shadow-sm">
+            <h3 className="text-base font-bold text-slate-900 mb-4">Vehicle Stats</h3>
+            <div className="space-y-3.5">
+              <div className="flex justify-between items-center pb-3 border-b border-slate-100">
+                <span className="text-sm text-slate-500">Total Revenue</span>
+                <span className="text-sm font-bold text-slate-950">MAD {totalRevenue.toLocaleString()}</span>
+              </div>
+              <div className="flex justify-between items-center pb-3 border-b border-slate-100">
+                <span className="text-sm text-slate-500">Current Branch</span>
+                <span className="text-sm font-semibold text-slate-900 flex items-center gap-1.5">
+                  <span className="w-1.5 h-1.5 rounded-full bg-slate-400"></span> Downtown HQ
+                </span>
+              </div>
+              <div className="flex justify-between items-center">
+                <span className="text-sm text-slate-500">Total Trips</span>
+                <span className="text-sm font-bold text-slate-950">{totalTrips}</span>
+              </div>
+            </div>
           </div>
-
-        </form>
+        </div>
       </div>
-    </div>
+    </form>
   );
 }
