@@ -9,13 +9,25 @@ export type ReservationWithDetails = Reservation & {
   vehicles?: any;
 };
 
-export async function getReservations(): Promise<ReservationWithDetails[]> {
+export async function getReservations(tenantSlug?: string): Promise<ReservationWithDetails[]> {
   const supabase = await createSupabaseServerClient();
-  const { data, error } = await supabase
+  let query = supabase
     .from('reservations')
     .select('*, clients(*), vehicles(*)')
     .order('created_at', { ascending: false });
 
+  if (tenantSlug) {
+    const { data: tenant } = await supabase
+      .from('tenants')
+      .select('id')
+      .eq('slug', tenantSlug)
+      .single();
+    if (tenant?.id) {
+      query = query.eq('tenant_id', tenant.id);
+    }
+  }
+
+  const { data, error } = await query;
   if (error) throw error;
   return (data ?? []) as ReservationWithDetails[];
 }
@@ -46,4 +58,15 @@ export async function addReservation(
 
   revalidatePath('/reservations');
   return data as Reservation;
+}
+
+export async function deleteReservation(id: string): Promise<void> {
+  const supabase = await createSupabaseServerClient();
+  const { error } = await supabase
+    .from('reservations')
+    .delete()
+    .eq('id', id);
+
+  if (error) throw error;
+  revalidatePath('/reservations');
 }

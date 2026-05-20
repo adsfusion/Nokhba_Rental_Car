@@ -22,6 +22,16 @@ interface Props {
   tenantSlug: string;
 }
 
+// ── Timezone-safe local datetime string builder ────────────────────────────────
+function toLocalDatetimeString(date: Date): string {
+  const yyyy = date.getFullYear();
+  const mm = String(date.getMonth() + 1).padStart(2, '0');
+  const dd = String(date.getDate()).padStart(2, '0');
+  const hh = String(date.getHours()).padStart(2, '0');
+  const min = String(date.getMinutes()).padStart(2, '0');
+  return `${yyyy}-${mm}-${dd}T${hh}:${min}`;
+}
+
 export default function NewReservationForm({ clients, vehicles, reservations, tenantSlug }: Props) {
   const router = useRouter();
   const { addNotification } = useNotifications();
@@ -35,6 +45,25 @@ export default function NewReservationForm({ clients, vehicles, reservations, te
   const [totalAmount, setTotalAmount] = useState<number | ''>('');
   const [status, setStatus] = useState<'PENDING' | 'CONFIRMED'>('PENDING');
   const [notes, setNotes] = useState('');
+
+  // Hydration-safe initial local dates on client mount
+  useEffect(() => {
+    const now = new Date();
+    const tomorrow = new Date(now.getTime() + 24 * 60 * 60 * 1000);
+    setStartDate(toLocalDatetimeString(now));
+    setEndDate(toLocalDatetimeString(tomorrow));
+  }, []);
+
+  // Format date state string for input binding, handling timezone suffix removal
+  const formatForInput = (val: string) => {
+    if (!val) return '';
+    if (val.includes('T') && !val.includes('Z') && !val.includes('+')) {
+      return val.slice(0, 16);
+    }
+    const date = new Date(val);
+    return isNaN(date.getTime()) ? '' : toLocalDatetimeString(date);
+  };
+
 
   // 1. Reactive overlap filter for vehicles
   const availableVehicles = useMemo(() => {
@@ -168,7 +197,7 @@ export default function NewReservationForm({ clients, vehicles, reservations, te
             <input
               required
               type="datetime-local"
-              value={startDate}
+              value={formatForInput(startDate)}
               onChange={(e) => setStartDate(e.target.value)}
               className={inputClass}
             />
@@ -180,7 +209,7 @@ export default function NewReservationForm({ clients, vehicles, reservations, te
             <input
               required
               type="datetime-local"
-              value={endDate}
+              value={formatForInput(endDate)}
               onChange={(e) => setEndDate(e.target.value)}
               className={inputClass}
             />
