@@ -32,6 +32,21 @@ export async function getReservations(tenantSlug?: string): Promise<ReservationW
   return (data ?? []) as ReservationWithDetails[];
 }
 
+export async function getReservationById(id: string): Promise<ReservationWithDetails | null> {
+  const supabase = await createSupabaseServerClient();
+  const { data, error } = await supabase
+    .from('reservations')
+    .select('*, clients(*), vehicles(*)')
+    .eq('id', id)
+    .single();
+
+  if (error) {
+    console.error('Error fetching reservation by ID:', error);
+    return null;
+  }
+  return data as ReservationWithDetails;
+}
+
 export async function addReservation(
   reservation: Omit<Reservation, 'id' | 'tenant_id' | 'created_at' | 'updated_at'>
 ): Promise<Reservation> {
@@ -57,6 +72,25 @@ export async function addReservation(
   if (error) throw error;
 
   revalidatePath('/reservations');
+  return data as Reservation;
+}
+
+export async function updateReservation(
+  id: string,
+  reservation: Partial<Omit<Reservation, 'id' | 'tenant_id' | 'created_at' | 'updated_at'>>
+): Promise<Reservation> {
+  const supabase = await createSupabaseServerClient();
+  const { data, error } = await supabase
+    .from('reservations')
+    .update(reservation)
+    .eq('id', id)
+    .select()
+    .single();
+
+  if (error) throw error;
+
+  revalidatePath('/reservations');
+  revalidatePath(`/reservations/${id}/edit`);
   return data as Reservation;
 }
 
