@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { motion } from 'motion/react';
 import { QRCodeCanvas } from 'qrcode.react';
 import { Copy, Check, ExternalLink, X } from 'lucide-react';
+import { copyToClipboard } from '@/lib/utils';
 
 type Props = {
   contractId: string;
@@ -20,12 +21,13 @@ export function SignLinkPopover({ contractId, onClose }: Props) {
 
   const signUrl = origin ? `${origin}/sign/${contractId}` : '';
 
-  const handleCopy = () => {
+  const handleCopy = async () => {
     if (!signUrl) return;
-    navigator.clipboard.writeText(signUrl).then(() => {
+    const success = await copyToClipboard(signUrl);
+    if (success) {
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
-    });
+    }
   };
 
   return (
@@ -69,8 +71,10 @@ export function SignLinkPopover({ contractId, onClose }: Props) {
             onClick={handleCopy}
             className="flex items-center justify-center gap-2 py-2.5 bg-slate-900 text-white rounded-xl font-bold text-sm transition-colors hover:bg-slate-800"
           >
-            {copied ? <Check size={15} /> : <Copy size={15} />}
-            {copied ? 'Copied!' : 'Copy Link'}
+            <span>
+              {copied ? <Check size={15} /> : <Copy size={15} />}
+            </span>
+            <span>{copied ? 'Copied!' : 'Copy Link'}</span>
           </button>
           <a
             href={signUrl}

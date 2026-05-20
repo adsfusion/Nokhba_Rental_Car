@@ -1,10 +1,10 @@
 'use client';
 
 import { useState, useEffect, useTransition, useRef } from 'react';
-import { useRouter, useParams, useSearchParams } from 'next/navigation';
+import { useRouter, useParams } from 'next/navigation';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { Loader2, Download, UserCircle, Car, ShieldCheck, CreditCard, ChevronRight, Check, QrCode, IdCard as IdCardIcon, Copy, MessageCircle } from 'lucide-react';
+import { Loader2, Download, UserCircle, Car, ShieldCheck, CreditCard, ChevronRight, Check, QrCode, IdCard as IdCardIcon } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { QRCodeCanvas } from 'qrcode.react';
 import SignatureCanvas from 'react-signature-canvas';
@@ -15,7 +15,7 @@ import {
   X, User,
 } from 'lucide-react';
 
-import { cn, copyToClipboard } from '@/lib/utils';
+import { cn } from '@/lib/utils';
 import { contractSchema, type ContractFormData } from '@/lib/validations/contract';
 import { addContract, getNextContractId } from '@/lib/actions/contracts';
 import { updateVehicle } from '@/lib/actions/vehicles';
@@ -52,18 +52,6 @@ export function ContractWizard({ vehicles, clients }: Props) {
   const [contractData, setContractData] = useState<ContractFormData | null>(null);
   const [isSignatureModalOpen, setIsSignatureModalOpen] = useState(false);
   const [contractLink, setContractLink] = useState('');
-  const [copied, setCopied] = useState(false);
-
-  const handleCopyLink = async () => {
-    const success = await copyToClipboard(contractLink);
-    if (success) {
-      setCopied(true);
-      addNotification('Copied!', 'Link copied to clipboard.', 'success');
-      setTimeout(() => setCopied(false), 2000);
-    } else {
-      addNotification('Error', 'Failed to copy link. Please copy it manually.', 'error');
-    }
-  };
   
   // Frozen data to preserve state after Next.js revalidation
   const [frozenClient, setFrozenClient] = useState<any>(null);
@@ -114,8 +102,6 @@ export function ContractWizard({ vehicles, clients }: Props) {
       vehiclePlate: '',
       vehicleStartMileage: 0,
       vehicleRegistrationDate: '',
-      startDate: '',
-      endDate: '',
       rentalDurationDays: 1,
       insuranceOption: 'Basic',
       dailyRate: 50,
@@ -229,60 +215,6 @@ export function ContractWizard({ vehicles, clients }: Props) {
     setValue('vehicleStartMileage', v.mileage ?? 0, { shouldValidate: true });
     setValue('vehicleRegistrationDate', '', { shouldValidate: true });
   };
-
-  const searchParams = useSearchParams();
-  const hasPrefilled = useRef(false);
-
-  useEffect(() => {
-    if (hasPrefilled.current || !searchParams || clients.length === 0 || vehicles.length === 0) {
-      return;
-    }
-
-    const clientIdParam = searchParams.get('clientId');
-    if (clientIdParam) {
-      const client = clients.find(c => c.id === clientIdParam);
-      if (client) {
-        handleSelectClient(client);
-      }
-    }
-
-    const vehicleIdParam = searchParams.get('vehicleId');
-    let prefilledDailyRate = 50;
-    if (vehicleIdParam) {
-      const vehicle = vehicles.find(v => v.id === vehicleIdParam);
-      if (vehicle) {
-        handleSelectVehicle(vehicle);
-        if (vehicle.daily_rate) {
-          prefilledDailyRate = vehicle.daily_rate;
-        }
-      }
-    }
-
-    const startDateParam = searchParams.get('startDate');
-    if (startDateParam) {
-      setValue('startDate', startDateParam, { shouldValidate: true });
-    }
-
-    const endDateParam = searchParams.get('endDate');
-    if (endDateParam) {
-      setValue('endDate', endDateParam, { shouldValidate: true });
-    }
-
-    const amountParam = searchParams.get('amount');
-    if (amountParam && startDateParam && endDateParam) {
-      const start = new Date(startDateParam);
-      const end = new Date(endDateParam);
-      if (!isNaN(start.getTime()) && !isNaN(end.getTime())) {
-        start.setHours(0, 0, 0, 0);
-        end.setHours(0, 0, 0, 0);
-        const diffDays = Math.round((end.getTime() - start.getTime()) / 86400000) || 1;
-        prefilledDailyRate = Math.round(Number(amountParam) / diffDays);
-      }
-    }
-
-    setValue('dailyRate', prefilledDailyRate, { shouldValidate: true });
-    hasPrefilled.current = true;
-  }, [searchParams, clients, vehicles, setValue]);
 
   const onFormError = (errors: any) => {
     console.error("Validation Errors:", errors);
@@ -605,32 +537,6 @@ export function ContractWizard({ vehicles, clients }: Props) {
           <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">
             Scan to Upload Docs &amp; Sign
           </p>
-        </div>
-
-        {/* Remote Sharing Actions */}
-        <div className="flex flex-row items-center justify-center gap-4 mt-6">
-          <button
-            type="button"
-            onClick={handleCopyLink}
-            className="flex items-center justify-center gap-2 px-6 py-3 bg-white border border-slate-200 rounded-xl shadow-sm text-slate-700 font-semibold hover:bg-slate-50 transition-all duration-200"
-          >
-            <span>
-              {copied ? <Check className="w-5 h-5 text-green-600" /> : <Copy className="w-5 h-5" />}
-            </span>
-            <span>{copied ? 'Copied!' : 'Copy Link'}</span>
-          </button>
-          
-          <a
-            href={`https://wa.me/?text=${encodeURIComponent(
-              `Please complete your rental contract here: ${contractLink}`
-            )}`}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="flex items-center justify-center gap-2 px-6 py-3 bg-[#25D366] text-white rounded-xl shadow-sm font-semibold hover:bg-[#22bf5b] transition-all duration-200"
-          >
-            <MessageCircle className="w-5 h-5" />
-            Send via WhatsApp
-          </a>
         </div>
 
         <div className="pt-4 flex justify-center gap-4">

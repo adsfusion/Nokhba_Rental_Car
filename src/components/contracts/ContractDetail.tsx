@@ -451,9 +451,14 @@ export function ContractDetail({ contract, docUrls }: Props) {
                 disabled={isPdfLoading}
                 className="px-5 py-2.5 bg-white border border-slate-200 text-slate-700 rounded-xl font-bold text-sm hover:bg-slate-50 transition-colors flex items-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed"
               >
-                {isPdfLoading
-                  ? <><Loader2 size={15} className="animate-spin" /> Generating…</>
-                  : <><Download size={15} /> Download PDF</>}
+                <span>
+                  {isPdfLoading ? (
+                    <Loader2 size={15} className="animate-spin" />
+                  ) : (
+                    <Download size={15} />
+                  )}
+                </span>
+                <span>{isPdfLoading ? 'Generating…' : 'Download PDF'}</span>
               </button>
               {localStatus === 'signed' && (
                 <button
@@ -461,9 +466,14 @@ export function ContractDetail({ contract, docUrls }: Props) {
                   disabled={isCompleting}
                   className="px-5 py-2.5 bg-slate-900 hover:bg-slate-800 text-white rounded-xl text-sm font-semibold transition-colors flex items-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed"
                 >
-                  {isCompleting
-                    ? <><Loader2 size={15} className="animate-spin" /> Completing…</>
-                    : <><RefreshCw size={15} /> Complete Contract</>}
+                  <span>
+                    {isCompleting ? (
+                      <Loader2 size={15} className="animate-spin" />
+                    ) : (
+                      <RefreshCw size={15} />
+                    )}
+                  </span>
+                  <span>{isCompleting ? 'Completing…' : 'Complete Contract'}</span>
                 </button>
               )}
             </div>
