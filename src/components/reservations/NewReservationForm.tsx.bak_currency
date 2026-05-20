@@ -41,7 +41,6 @@ export default function NewReservationForm({ clients, vehicles, reservations, te
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
   const [totalAmount, setTotalAmount] = useState<number | ''>('');
-  const [currency, setCurrency] = useState<'MAD' | 'EUR' | 'USD'>('MAD');
   const [status, setStatus] = useState<'PENDING' | 'CONFIRMED'>('PENDING');
   const [notes, setNotes] = useState('');
 
@@ -122,9 +121,6 @@ export default function NewReservationForm({ clients, vehicles, reservations, te
     const dailyRate = selectedVehicle.daily_rate || 0;
     
     setTotalAmount(diffDays * dailyRate);
-    if (selectedVehicle.currency) {
-      setCurrency(selectedVehicle.currency);
-    }
   }, [startDate, endDate, vehicleId, vehicles]);
 
   // Clear selected vehicle if it becomes unavailable due to date change
@@ -158,7 +154,6 @@ export default function NewReservationForm({ clients, vehicles, reservations, te
           end_date: new Date(endDate).toISOString(),
           total_amount: Number(totalAmount),
           status,
-          currency,
           notes: notes || null,
         });
 
@@ -254,7 +249,7 @@ export default function NewReservationForm({ clients, vehicles, reservations, te
                     <option value="">— Select Available Vehicle —</option>
                     {availableVehicles.map((v) => (
                       <option key={v.id} value={v.id}>
-                        {v.brand} {v.model} ({v.license_plate}) — {v.currency || 'MAD'} {v.daily_rate}/day
+                        {v.brand} {v.model} ({v.license_plate}) — MAD {v.daily_rate}/day
                       </option>
                     ))}
                   </>
@@ -270,33 +265,19 @@ export default function NewReservationForm({ clients, vehicles, reservations, te
             )}
           </div>
 
-          {/* Total Amount & Currency */}
+          {/* Total Amount */}
           <div className="space-y-1.5 md:col-span-4">
-            <label className={labelClass}>Total Amount</label>
-            <div className="flex gap-2">
-              <input
-                required
-                type="number"
-                min={0}
-                step="any"
-                value={totalAmount}
-                onChange={(e) => setTotalAmount(e.target.value === '' ? '' : Number(e.target.value))}
-                className={`${inputClass} flex-1`}
-                placeholder="0.00"
-              />
-              <div className="relative w-24 flex-shrink-0">
-                <select
-                  value={currency}
-                  onChange={(e) => setCurrency(e.target.value as 'MAD' | 'EUR' | 'USD')}
-                  className={selectClass}
-                >
-                  <option value="MAD">MAD</option>
-                  <option value="EUR">EUR</option>
-                  <option value="USD">USD</option>
-                </select>
-                <ChevronDown size={14} className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-slate-400" />
-              </div>
-            </div>
+            <label className={labelClass}>Total Amount (MAD)</label>
+            <input
+              required
+              type="number"
+              min={0}
+              step="any"
+              value={totalAmount}
+              onChange={(e) => setTotalAmount(e.target.value === '' ? '' : Number(e.target.value))}
+              className={inputClass}
+              placeholder="0.00"
+            />
           </div>
 
           {/* Status Select */}

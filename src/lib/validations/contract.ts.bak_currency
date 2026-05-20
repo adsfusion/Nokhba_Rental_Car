@@ -38,7 +38,6 @@ export const contractBaseSchema = z.object({
   rentalDurationDays: z.number().min(1, 'Duration must be at least 1 day'),
   insuranceOption: z.enum(['Basic', 'Premium', 'Full Coverage']),
   dailyRate: z.number().min(0),
-  currency: z.enum(['MAD', 'EUR', 'USD']).default('MAD'),
   deposit: z.number().min(0),
   paymentMethod: z.enum(['Cash', 'Card', 'Transfer']),
   signature: z.string().optional(),

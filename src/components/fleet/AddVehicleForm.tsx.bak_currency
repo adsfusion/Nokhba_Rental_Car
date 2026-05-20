@@ -70,7 +70,6 @@ type NewVehicle = {
   daily_rate:           number | null;
   weekly_rate:          number | null;
   monthly_rate:         number | null;
-  currency?:            'MAD' | 'EUR' | 'USD';
   images:               string[];
   notes:                string | null;
   registration_date:    string | null;
@@ -93,7 +92,6 @@ const EMPTY: NewVehicle = {
   daily_rate:           null,
   weekly_rate:          null,
   monthly_rate:         null,
-  currency:             'MAD',
   images:               [],
   notes:                null,
   registration_date:    null,
@@ -219,7 +217,7 @@ export default function AddVehicleForm({ tenantSlug }: { tenantSlug: string }) {
           <p className="text-slate-500 text-sm mt-0.5">Fill in the information below across all sections.</p>
         </div>
 
-        <form dir="ltr" onSubmit={handleSubmit} className="p-6 space-y-8">
+        <form onSubmit={handleSubmit} className="p-6 space-y-8">
 
           {/* ── SECTION 1: Basic Info ─────────────────────────────────────── */}
           <div className="space-y-4">
@@ -490,32 +488,18 @@ export default function AddVehicleForm({ tenantSlug }: { tenantSlug: string }) {
                   className={`${inputClass} uppercase`}
                 />
               </div>
-              {/* Daily Rate & Currency */}
+              {/* Daily Rate */}
               <div className="space-y-1.5 md:col-span-3">
-                <label className={`${labelClass} truncate whitespace-nowrap`}>Daily Rate</label>
-                <div className="flex gap-2">
-                  <input
-                    type="number"
-                    min={0}
-                    step={0.01}
-                    placeholder="0.00"
-                    value={form.daily_rate ?? ''}
-                    onChange={(e) => setForm((p) => ({ ...p, daily_rate: parseFloat(e.target.value) || null }))}
-                    className={`${inputClass} flex-1`}
-                  />
-                  <div className="relative w-20 flex-shrink-0">
-                    <select
-                      value={form.currency || 'MAD'}
-                      onChange={(e) => setForm((p) => ({ ...p, currency: e.target.value as 'MAD' | 'EUR' | 'USD' }))}
-                      className={selectClass}
-                    >
-                      <option value="MAD">MAD</option>
-                      <option value="EUR">EUR</option>
-                      <option value="USD">USD</option>
-                    </select>
-                    <ChevronDown size={14} className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-slate-400" />
-                  </div>
-                </div>
+                <label className={`${labelClass} truncate whitespace-nowrap`}>Daily Rate (MAD)</label>
+                <input
+                  type="number"
+                  min={0}
+                  step={0.01}
+                  placeholder="0.00"
+                  value={form.daily_rate ?? ''}
+                  onChange={(e) => setForm((p) => ({ ...p, daily_rate: parseFloat(e.target.value) || null }))}
+                  className={inputClass}
+                />
               </div>
             </div>
           </div>
@@ -546,42 +530,17 @@ export default function AddVehicleForm({ tenantSlug }: { tenantSlug: string }) {
                 </div>
               </div>
 
-              {/* Maintenance sub-fields */}
-              {form.status === 'maintenance' && (
-                <div className="md:col-span-8 grid grid-cols-1 sm:grid-cols-2 gap-4 rounded-xl border border-orange-100 bg-orange-50/60 p-4">
-                  <div className="space-y-1.5">
-                    <label className="block text-xs font-bold uppercase text-orange-800 mb-1.5">Expected Return Date</label>
-                    <input
-                      type="date"
-                      className="w-full rounded-xl border border-orange-200 bg-white px-4 py-2.5 text-sm focus:border-orange-500 focus:outline-none"
-                    />
-                  </div>
-                  <div className="space-y-1.5">
-                    <label className="block text-xs font-bold uppercase text-orange-800 mb-1.5">Reason</label>
-                    <input
-                      type="text"
-                      placeholder="e.g. Broken windshield"
-                      value={form.notes || ''}
-                      onChange={(e) => setForm((p) => ({ ...p, notes: e.target.value }))}
-                      className="w-full rounded-xl border border-orange-200 bg-white px-4 py-2.5 text-sm focus:border-orange-500 focus:outline-none"
-                    />
-                  </div>
-                </div>
-              )}
-
               {/* Notes */}
-              {form.status !== 'maintenance' && (
-                <div className="space-y-1.5 md:col-span-8">
-                  <label className={labelClass}>Notes (optional)</label>
-                  <textarea
-                    rows={2}
-                    value={form.notes || ''}
-                    onChange={(e) => setForm((p) => ({ ...p, notes: e.target.value || null }))}
-                    className={`${inputClass} resize-none`}
-                    placeholder="Any additional notes about this vehicle…"
-                  />
-                </div>
-              )}
+              <div className="space-y-1.5 md:col-span-8">
+                <label className={labelClass}>Notes (optional)</label>
+                <textarea
+                  rows={2}
+                  value={form.notes || ''}
+                  onChange={(e) => setForm((p) => ({ ...p, notes: e.target.value || null }))}
+                  className={`${inputClass} resize-none`}
+                  placeholder="Any additional notes about this vehicle…"
+                />
+              </div>
 
               {/* Photos */}
               <div className="space-y-3 pt-2 md:col-span-12">

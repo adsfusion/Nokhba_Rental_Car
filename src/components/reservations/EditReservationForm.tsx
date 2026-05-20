@@ -48,6 +48,7 @@ export default function EditReservationForm({
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
   const [totalAmount, setTotalAmount] = useState<number | ''>('');
+  const [currency, setCurrency] = useState<'MAD' | 'EUR' | 'USD'>('MAD');
   const [status, setStatus] = useState<'PENDING' | 'CONFIRMED' | 'CANCELLED' | 'COMPLETED'>('PENDING');
   const [notes, setNotes] = useState('');
 
@@ -64,6 +65,7 @@ export default function EditReservationForm({
       setStartDate(reservation.start_date ? toLocalDateString(new Date(reservation.start_date)) : '');
       setEndDate(reservation.end_date ? toLocalDateString(new Date(reservation.end_date)) : '');
       setTotalAmount(reservation.total_amount);
+      setCurrency(reservation.currency || 'MAD');
       setStatus(reservation.status as 'PENDING' | 'CONFIRMED' | 'CANCELLED' | 'COMPLETED');
       setNotes(reservation.notes || '');
     }
@@ -150,6 +152,9 @@ export default function EditReservationForm({
     const dailyRate = selectedVehicle.daily_rate || 0;
     
     setTotalAmount(diffDays * dailyRate);
+    if (selectedVehicle.currency) {
+      setCurrency(selectedVehicle.currency);
+    }
   }, [startDate, endDate, vehicleId, vehicles, reservation]);
 
   // Clear selected vehicle if it becomes unavailable due to date change
@@ -183,6 +188,7 @@ export default function EditReservationForm({
           end_date: new Date(endDate).toISOString(),
           total_amount: Number(totalAmount),
           status,
+          currency,
           notes: notes || null,
         });
 
@@ -278,7 +284,7 @@ export default function EditReservationForm({
                     <option value="">— Select Available Vehicle —</option>
                     {availableVehicles.map((v) => (
                       <option key={v.id} value={v.id}>
-                        {v.brand} {v.model} ({v.license_plate}) — MAD {v.daily_rate}/day
+                        {v.brand} {v.model} ({v.license_plate}) — {v.currency || 'MAD'} {v.daily_rate}/day
                       </option>
                     ))}
                   </>
@@ -294,19 +300,33 @@ export default function EditReservationForm({
             )}
           </div>
 
-          {/* Total Amount */}
+          {/* Total Amount & Currency */}
           <div className="space-y-1.5 md:col-span-4">
-            <label className={labelClass}>Total Amount (MAD)</label>
-            <input
-              required
-              type="number"
-              min={0}
-              step="any"
-              value={totalAmount}
-              onChange={(e) => setTotalAmount(e.target.value === '' ? '' : Number(e.target.value))}
-              className={inputClass}
-              placeholder="0.00"
-            />
+            <label className={labelClass}>Total Amount</label>
+            <div className="flex gap-2">
+              <input
+                required
+                type="number"
+                min={0}
+                step="any"
+                value={totalAmount}
+                onChange={(e) => setTotalAmount(e.target.value === '' ? '' : Number(e.target.value))}
+                className={`${inputClass} flex-1`}
+                placeholder="0.00"
+              />
+              <div className="relative w-24 flex-shrink-0">
+                <select
+                  value={currency}
+                  onChange={(e) => setCurrency(e.target.value as 'MAD' | 'EUR' | 'USD')}
+                  className={selectClass}
+                >
+                  <option value="MAD">MAD</option>
+                  <option value="EUR">EUR</option>
+                  <option value="USD">USD</option>
+                </select>
+                <ChevronDown size={14} className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-slate-400" />
+              </div>
+            </div>
           </div>
 
           {/* Status Select */}
@@ -347,7 +367,7 @@ export default function EditReservationForm({
         <div>
           {clientId && vehicleId && startDate && endDate && (
             <Link
-              href={`/${tenantSlug}/contracts/new?reservationId=${reservation.id}&clientId=${clientId}&vehicleId=${vehicleId}&startDate=${startDate}&endDate=${endDate}&amount=${totalAmount}`}
+              href={`/${tenantSlug}/contracts/new?reservationId=${reservation.id}&clientId=${clientId}&vehicleId=${vehicleId}&startDate=${startDate}&endDate=${endDate}&amount=${totalAmount}&currency=${currency}`}
               className="inline-flex items-center justify-center gap-2 px-5 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white transition-colors rounded-xl text-sm font-bold shadow-lg shadow-emerald-600/10"
             >
               <FileText size={16} />

@@ -9,7 +9,6 @@ export interface Reservation {
   end_date: string;
   status: ReservationStatus;
   total_amount: number;
-  currency?: 'MAD' | 'EUR' | 'USD';
   notes: string | null;
   created_at?: string;
   updated_at?: string;

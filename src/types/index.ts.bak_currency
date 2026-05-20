@@ -31,7 +31,6 @@ export type Vehicle = {
   transmission: string | null; // Manual | Automatic
   images: string[] | null;     // DB: images, stored as jsonb
   notes: string | null;
-  currency?: 'MAD' | 'EUR' | 'USD';
   registration_date: string | null;    // DB: date field, format YYYY-MM-DD
   insurance_expiry: string | null;     // DB: date field, format YYYY-MM-DD
   technical_inspection: string | null; // DB: date field, format YYYY-MM-DD
@@ -64,7 +63,6 @@ export type Contract = {
   qr_code_token: string | null;
   pdf_url: string | null;
   notes: string | null;
-  currency?: 'MAD' | 'EUR' | 'USD';
   extra_data: Record<string, unknown> | null;
   return_mileage: number | null;
   return_fuel_level: string | null;

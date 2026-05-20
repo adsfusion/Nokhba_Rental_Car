@@ -88,7 +88,7 @@ export default function ReservationsTable({ reservations, tenantSlug }: Props) {
                 </div>
                 <div>
                   <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-1">Total</p>
-                  <p className="text-sm font-bold text-slate-900">{res.currency || 'MAD'} {res.total_amount}</p>
+                  <p className="text-sm font-bold text-slate-900">MAD {res.total_amount}</p>
                   <span
                     className={cn(
                       'text-[10px] font-bold px-2 py-0.5 rounded-full inline-block mt-0.5 uppercase tracking-wide border',
