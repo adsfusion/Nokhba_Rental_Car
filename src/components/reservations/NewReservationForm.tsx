@@ -22,14 +22,12 @@ interface Props {
   tenantSlug: string;
 }
 
-// ── Timezone-safe local datetime string builder ────────────────────────────────
-function toLocalDatetimeString(date: Date): string {
+// ── Timezone-safe local date string builder ────────────────────────────────────
+function toLocalDateString(date: Date): string {
   const yyyy = date.getFullYear();
   const mm = String(date.getMonth() + 1).padStart(2, '0');
   const dd = String(date.getDate()).padStart(2, '0');
-  const hh = String(date.getHours()).padStart(2, '0');
-  const min = String(date.getMinutes()).padStart(2, '0');
-  return `${yyyy}-${mm}-${dd}T${hh}:${min}`;
+  return `${yyyy}-${mm}-${dd}`;
 }
 
 export default function NewReservationForm({ clients, vehicles, reservations, tenantSlug }: Props) {
@@ -51,19 +49,19 @@ export default function NewReservationForm({ clients, vehicles, reservations, te
   useEffect(() => {
     const now = new Date();
     const tomorrow = new Date(now.getTime() + 24 * 60 * 60 * 1000);
-    setStartDate(toLocalDatetimeString(now));
-    setEndDate(toLocalDatetimeString(tomorrow));
+    setStartDate(toLocalDateString(now));
+    setEndDate(toLocalDateString(tomorrow));
     setIsMounted(true);
   }, []);
 
   // Format date state string for input binding, handling timezone suffix removal
   const formatForInput = (val: string) => {
     if (!val) return '';
-    if (val.includes('T') && !val.includes('Z') && !val.includes('+')) {
-      return val.slice(0, 16);
+    if (/^\d{4}-\d{2}-\d{2}$/.test(val)) {
+      return val;
     }
     const date = new Date(val);
-    return isNaN(date.getTime()) ? '' : toLocalDatetimeString(date);
+    return isNaN(date.getTime()) ? '' : toLocalDateString(date);
   };
 
 
@@ -143,7 +141,7 @@ export default function NewReservationForm({ clients, vehicles, reservations, te
     const startMs = new Date(startDate).getTime();
     const endMs = new Date(endDate).getTime();
     if (startMs >= endMs) {
-      addNotification('Error', 'End Date & Time must be after Start Date & Time.', 'error');
+      addNotification('Error', 'End Date must be after Start Date.', 'error');
       return;
     }
 
@@ -195,11 +193,11 @@ export default function NewReservationForm({ clients, vehicles, reservations, te
 
           {/* Start Date */}
           <div className="space-y-1.5 md:col-span-6">
-            <label className={labelClass}>Start Date & Time</label>
+            <label className={labelClass}>Start Date</label>
             {isMounted ? (
               <input
                 required
-                type="datetime-local"
+                type="date"
                 value={formatForInput(startDate)}
                 onChange={(e) => setStartDate(e.target.value)}
                 className={inputClass}
@@ -207,7 +205,7 @@ export default function NewReservationForm({ clients, vehicles, reservations, te
             ) : (
               <input
                 disabled
-                type="datetime-local"
+                type="date"
                 className={inputClass}
               />
             )}
@@ -215,11 +213,11 @@ export default function NewReservationForm({ clients, vehicles, reservations, te
 
           {/* End Date */}
           <div className="space-y-1.5 md:col-span-6">
-            <label className={labelClass}>End Date & Time</label>
+            <label className={labelClass}>End Date</label>
             {isMounted ? (
               <input
                 required
-                type="datetime-local"
+                type="date"
                 value={formatForInput(endDate)}
                 onChange={(e) => setEndDate(e.target.value)}
                 className={inputClass}
@@ -227,7 +225,7 @@ export default function NewReservationForm({ clients, vehicles, reservations, te
             ) : (
               <input
                 disabled
-                type="datetime-local"
+                type="date"
                 className={inputClass}
               />
             )}

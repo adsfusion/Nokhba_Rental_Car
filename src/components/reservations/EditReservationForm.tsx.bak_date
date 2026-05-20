@@ -23,12 +23,14 @@ interface Props {
   tenantSlug: string;
 }
 
-// ── Timezone-safe local date string builder ────────────────────────────────────
-function toLocalDateString(date: Date): string {
+// ── Timezone-safe local datetime string builder ────────────────────────────────
+function toLocalDatetimeString(date: Date): string {
   const yyyy = date.getFullYear();
   const mm = String(date.getMonth() + 1).padStart(2, '0');
   const dd = String(date.getDate()).padStart(2, '0');
-  return `${yyyy}-${mm}-${dd}`;
+  const hh = String(date.getHours()).padStart(2, '0');
+  const min = String(date.getMinutes()).padStart(2, '0');
+  return `${yyyy}-${mm}-${dd}T${hh}:${min}`;
 }
 
 export default function EditReservationForm({
@@ -61,8 +63,8 @@ export default function EditReservationForm({
     if (reservation) {
       setClientId(reservation.client_id);
       setVehicleId(reservation.vehicle_id);
-      setStartDate(reservation.start_date ? toLocalDateString(new Date(reservation.start_date)) : '');
-      setEndDate(reservation.end_date ? toLocalDateString(new Date(reservation.end_date)) : '');
+      setStartDate(reservation.start_date ? toLocalDatetimeString(new Date(reservation.start_date)) : '');
+      setEndDate(reservation.end_date ? toLocalDatetimeString(new Date(reservation.end_date)) : '');
       setTotalAmount(reservation.total_amount);
       setStatus(reservation.status as 'PENDING' | 'CONFIRMED' | 'CANCELLED' | 'COMPLETED');
       setNotes(reservation.notes || '');
@@ -72,11 +74,11 @@ export default function EditReservationForm({
   // Format date state string for input binding, handling timezone suffix removal
   const formatForInput = (val: string) => {
     if (!val) return '';
-    if (/^\d{4}-\d{2}-\d{2}$/.test(val)) {
-      return val;
+    if (val.includes('T') && !val.includes('Z') && !val.includes('+')) {
+      return val.slice(0, 16);
     }
     const date = new Date(val);
-    return isNaN(date.getTime()) ? '' : toLocalDateString(date);
+    return isNaN(date.getTime()) ? '' : toLocalDatetimeString(date);
   };
 
   // 1. Reactive overlap filter for vehicles (EXCLUDING self conflict)
@@ -127,8 +129,8 @@ export default function EditReservationForm({
     }
 
     // Preserve original total amount if the dates and vehicle did not change
-    const origStartLocal = reservation.start_date ? toLocalDateString(new Date(reservation.start_date)) : '';
-    const origEndLocal = reservation.end_date ? toLocalDateString(new Date(reservation.end_date)) : '';
+    const origStartLocal = reservation.start_date ? toLocalDatetimeString(new Date(reservation.start_date)) : '';
+    const origEndLocal = reservation.end_date ? toLocalDatetimeString(new Date(reservation.end_date)) : '';
 
     if (
       vehicleId === reservation.vehicle_id &&
@@ -170,7 +172,7 @@ export default function EditReservationForm({
     const startMs = new Date(startDate).getTime();
     const endMs = new Date(endDate).getTime();
     if (startMs >= endMs) {
-      addNotification('Error', 'End Date must be after Start Date.', 'error');
+      addNotification('Error', 'End Date & Time must be after Start Date & Time.', 'error');
       return;
     }
 
@@ -222,11 +224,11 @@ export default function EditReservationForm({
 
           {/* Start Date */}
           <div className="space-y-1.5 md:col-span-6">
-            <label className={labelClass}>Start Date</label>
+            <label className={labelClass}>Start Date & Time</label>
             {isMounted ? (
               <input
                 required
-                type="date"
+                type="datetime-local"
                 value={formatForInput(startDate)}
                 onChange={(e) => setStartDate(e.target.value)}
                 className={inputClass}
@@ -234,7 +236,7 @@ export default function EditReservationForm({
             ) : (
               <input
                 disabled
-                type="date"
+                type="datetime-local"
                 className={inputClass}
               />
             )}
@@ -242,11 +244,11 @@ export default function EditReservationForm({
 
           {/* End Date */}
           <div className="space-y-1.5 md:col-span-6">
-            <label className={labelClass}>End Date</label>
+            <label className={labelClass}>End Date & Time</label>
             {isMounted ? (
               <input
                 required
-                type="date"
+                type="datetime-local"
                 value={formatForInput(endDate)}
                 onChange={(e) => setEndDate(e.target.value)}
                 className={inputClass}
@@ -254,7 +256,7 @@ export default function EditReservationForm({
             ) : (
               <input
                 disabled
-                type="date"
+                type="datetime-local"
                 className={inputClass}
               />
             )}
