@@ -554,7 +554,7 @@ export default function EditVehicleForm({ vehicle, contracts, tenantSlug }: Prop
                   </div>
                   {/* Mileage */}
                   <div className="space-y-1.5 md:col-span-3">
-                    <label className={labelClass}>Current Mileage (km)</label>
+                    <label className={`${labelClass} truncate whitespace-nowrap`}>Mileage (km)</label>
                     <input
                       required
                       type="number"
