@@ -535,9 +535,9 @@ export default function EditVehicleForm({ vehicle, contracts, tenantSlug }: Prop
                   <span className="flex h-5 w-5 items-center justify-center rounded-full bg-slate-900 text-[10px] font-black text-white">2</span>
                   Technical Specs
                 </p>
-                <div className="rounded-2xl border border-slate-100 bg-slate-50/50 p-5 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-4">
+                <div className={sectionClass}>
                   {/* Color — dropdown */}
-                  <div className="space-y-1.5">
+                  <div className="space-y-1.5 md:col-span-3">
                     <label className={labelClass}>Color</label>
                     <div className="relative">
                       <select
@@ -554,7 +554,7 @@ export default function EditVehicleForm({ vehicle, contracts, tenantSlug }: Prop
                     </div>
                   </div>
                   {/* Mileage */}
-                  <div className="space-y-1.5">
+                  <div className="space-y-1.5 md:col-span-3">
                     <label className={`${labelClass} truncate whitespace-nowrap`}>Mileage (km)</label>
                     <input
                       required
@@ -566,7 +566,7 @@ export default function EditVehicleForm({ vehicle, contracts, tenantSlug }: Prop
                     />
                   </div>
                   {/* Transmission */}
-                  <div className="space-y-1.5">
+                  <div className="space-y-1.5 md:col-span-3">
                     <label className={labelClass}>Transmission</label>
                     <div className="relative">
                       <select
@@ -582,7 +582,7 @@ export default function EditVehicleForm({ vehicle, contracts, tenantSlug }: Prop
                     </div>
                   </div>
                   {/* Fuel Type */}
-                  <div className="space-y-1.5">
+                  <div className="space-y-1.5 md:col-span-3">
                     <label className={labelClass}>Fuel Type</label>
                     <div className="relative">
                       <select
@@ -609,9 +609,9 @@ export default function EditVehicleForm({ vehicle, contracts, tenantSlug }: Prop
                   <span className="flex h-5 w-5 items-center justify-center rounded-full bg-slate-900 text-[10px] font-black text-white">3</span>
                   Legal &amp; Financial
                 </p>
-                <div className="rounded-2xl border border-slate-100 bg-slate-50/50 p-5 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-4">
+                <div className={sectionClass}>
                   {/* Registration Date */}
-                  <div className="space-y-1.5">
+                  <div className="space-y-1.5 md:col-span-3">
                     <label className={`${labelClass} truncate whitespace-nowrap`}>Registration Date</label>
                     <input
                       type="date"
@@ -621,7 +621,7 @@ export default function EditVehicleForm({ vehicle, contracts, tenantSlug }: Prop
                     />
                   </div>
                   {/* Insurance Expiry */}
-                  <div className="space-y-1.5">
+                  <div className="space-y-1.5 md:col-span-3">
                     <label className={`${labelClass} truncate whitespace-nowrap`}>Insurance Expiry</label>
                     <input
                       type="date"
@@ -631,7 +631,7 @@ export default function EditVehicleForm({ vehicle, contracts, tenantSlug }: Prop
                     />
                   </div>
                   {/* Technical Inspection */}
-                  <div className="space-y-1.5">
+                  <div className="space-y-1.5 md:col-span-3">
                     <label className={`${labelClass} truncate whitespace-nowrap`}>Tech. Inspection</label>
                     <input
                       type="date"
@@ -641,23 +641,23 @@ export default function EditVehicleForm({ vehicle, contracts, tenantSlug }: Prop
                     />
                   </div>
                   {/* Daily Rate & Currency */}
-                  <div className="space-y-1.5">
+                  <div className="space-y-1.5 md:col-span-3">
                     <label className={`${labelClass} truncate whitespace-nowrap`}>Daily Rate</label>
-                    <div className="flex items-center gap-2 w-full">
+                    <div className="flex gap-2">
                       <input
                         type="number"
                         min={0}
                         step={0.01}
                         placeholder="0.00"
                         value={form.daily_rate ?? ''}
-                        onChange={(e) => setForm({ ...form, daily_rate: e.target.value === '' ? null : e.target.value as unknown as number })}
-                        className={`${inputClass} flex-1 w-full min-w-0`}
+                        onChange={(e) => setForm({ ...form, daily_rate: parseFloat(e.target.value) || null })}
+                        className={`${inputClass} flex-1`}
                       />
-                      <div className="relative w-24 shrink-0">
+                      <div className="relative w-20 flex-shrink-0">
                         <select
                           value={form.currency || 'MAD'}
                           onChange={(e) => setForm({ ...form, currency: e.target.value as 'MAD' | 'EUR' | 'USD' })}
-                          className={`${selectClass} w-full`}
+                          className={selectClass}
                         >
                           <option value="MAD">MAD</option>
                           <option value="EUR">EUR</option>

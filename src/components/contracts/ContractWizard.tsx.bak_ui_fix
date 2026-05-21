@@ -1319,7 +1319,7 @@ export function ContractWizard({ vehicles, clients }: Props) {
                         <input
                           type="number"
                           {...register('dailyRate', { valueAsNumber: true })}
-                          className="w-full px-3 py-2 bg-white border border-slate-200 rounded-lg text-sm flex-1 min-w-0"
+                          className="w-full px-3 py-2 bg-white border border-slate-200 rounded-lg text-sm flex-1"
                         />
                         <select
                           {...register('currency')}

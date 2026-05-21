@@ -311,7 +311,7 @@ export default function EditReservationForm({
                 step="any"
                 value={totalAmount}
                 onChange={(e) => setTotalAmount(e.target.value === '' ? '' : Number(e.target.value))}
-                className={`${inputClass} flex-1`}
+                className={`${inputClass} flex-1 min-w-0`}
                 placeholder="0.00"
               />
               <div className="relative w-24 flex-shrink-0">

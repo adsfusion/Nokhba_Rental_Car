@@ -3,8 +3,8 @@
 import { useState, useTransition, useMemo, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { ChevronDown, Calendar, AlertCircle } from 'lucide-react';
-import { addReservation } from '@/lib/actions/reservations';
+import { ChevronDown, Calendar, AlertCircle, FileText } from 'lucide-react';
+import { updateReservation, type ReservationWithDetails } from '@/lib/actions/reservations';
 import { useNotifications } from '@/components/layout/NotificationProvider';
 import type { Client, Vehicle, Reservation } from '@/types';
 
@@ -16,6 +16,7 @@ const selectClass =
 const labelClass = 'block text-xs font-bold uppercase tracking-wider text-slate-500 mb-1.5';
 
 interface Props {
+  reservation: ReservationWithDetails;
   clients: Client[];
   vehicles: Vehicle[];
   reservations: Reservation[];
@@ -30,7 +31,13 @@ function toLocalDateString(date: Date): string {
   return `${yyyy}-${mm}-${dd}`;
 }
 
-export default function NewReservationForm({ clients, vehicles, reservations, tenantSlug }: Props) {
+export default function EditReservationForm({
+  reservation,
+  clients,
+  vehicles,
+  reservations,
+  tenantSlug,
+}: Props) {
   const router = useRouter();
   const { addNotification } = useNotifications();
   const [isPending, startTransition] = useTransition();
@@ -42,18 +49,27 @@ export default function NewReservationForm({ clients, vehicles, reservations, te
   const [endDate, setEndDate] = useState('');
   const [totalAmount, setTotalAmount] = useState<number | ''>('');
   const [currency, setCurrency] = useState<'MAD' | 'EUR' | 'USD'>('MAD');
-  const [status, setStatus] = useState<'PENDING' | 'CONFIRMED'>('PENDING');
+  const [status, setStatus] = useState<'PENDING' | 'CONFIRMED' | 'CANCELLED' | 'COMPLETED'>('PENDING');
   const [notes, setNotes] = useState('');
 
   // Hydration-safe initial local dates on client mount
   const [isMounted, setIsMounted] = useState(false);
   useEffect(() => {
-    const now = new Date();
-    const tomorrow = new Date(now.getTime() + 24 * 60 * 60 * 1000);
-    setStartDate(toLocalDateString(now));
-    setEndDate(toLocalDateString(tomorrow));
     setIsMounted(true);
   }, []);
+
+  useEffect(() => {
+    if (reservation) {
+      setClientId(reservation.client_id);
+      setVehicleId(reservation.vehicle_id);
+      setStartDate(reservation.start_date ? toLocalDateString(new Date(reservation.start_date)) : '');
+      setEndDate(reservation.end_date ? toLocalDateString(new Date(reservation.end_date)) : '');
+      setTotalAmount(reservation.total_amount);
+      setCurrency(reservation.currency || 'MAD');
+      setStatus(reservation.status as 'PENDING' | 'CONFIRMED' | 'CANCELLED' | 'COMPLETED');
+      setNotes(reservation.notes || '');
+    }
+  }, [reservation]);
 
   // Format date state string for input binding, handling timezone suffix removal
   const formatForInput = (val: string) => {
@@ -65,11 +81,9 @@ export default function NewReservationForm({ clients, vehicles, reservations, te
     return isNaN(date.getTime()) ? '' : toLocalDateString(date);
   };
 
-
-  // 1. Reactive overlap filter for vehicles
+  // 1. Reactive overlap filter for vehicles (EXCLUDING self conflict)
   const availableVehicles = useMemo(() => {
     if (!startDate || !endDate) {
-      // If dates aren't set, display all vehicles
       return vehicles;
     }
 
@@ -83,6 +97,9 @@ export default function NewReservationForm({ clients, vehicles, reservations, te
     return vehicles.filter((vehicle) => {
       // Find any overlapping reservation for THIS vehicle that is PENDING or CONFIRMED
       const hasOverlap = reservations.some((res) => {
+        // CRITICAL: Exclude this reservation from conflict checks
+        if (res.id === reservation.id) return false;
+
         if (res.vehicle_id !== vehicle.id) return false;
         if (res.status !== 'PENDING' && res.status !== 'CONFIRMED') return false;
 
@@ -95,11 +112,11 @@ export default function NewReservationForm({ clients, vehicles, reservations, te
 
       return !hasOverlap;
     });
-  }, [startDate, endDate, vehicles, reservations]);
+  }, [startDate, endDate, vehicles, reservations, reservation.id]);
 
-  // 2. Auto-calculate price
+  // 2. Auto-calculate price, preserving manual values if inputs remain unchanged
   useEffect(() => {
-    if (!startDate || !endDate || !vehicleId) {
+    if (!startDate || !endDate || !vehicleId || !reservation) {
       return;
     }
 
@@ -108,6 +125,19 @@ export default function NewReservationForm({ clients, vehicles, reservations, te
 
     if (isNaN(startMs) || isNaN(endMs) || startMs >= endMs) {
       setTotalAmount('');
+      return;
+    }
+
+    // Preserve original total amount if the dates and vehicle did not change
+    const origStartLocal = reservation.start_date ? toLocalDateString(new Date(reservation.start_date)) : '';
+    const origEndLocal = reservation.end_date ? toLocalDateString(new Date(reservation.end_date)) : '';
+
+    if (
+      vehicleId === reservation.vehicle_id &&
+      startDate === origStartLocal &&
+      endDate === origEndLocal
+    ) {
+      setTotalAmount(reservation.total_amount);
       return;
     }
 
@@ -125,7 +155,7 @@ export default function NewReservationForm({ clients, vehicles, reservations, te
     if (selectedVehicle.currency) {
       setCurrency(selectedVehicle.currency);
     }
-  }, [startDate, endDate, vehicleId, vehicles]);
+  }, [startDate, endDate, vehicleId, vehicles, reservation]);
 
   // Clear selected vehicle if it becomes unavailable due to date change
   useEffect(() => {
@@ -151,7 +181,7 @@ export default function NewReservationForm({ clients, vehicles, reservations, te
 
     startTransition(async () => {
       try {
-        await addReservation({
+        await updateReservation(reservation.id, {
           client_id: clientId,
           vehicle_id: vehicleId,
           start_date: new Date(startDate).toISOString(),
@@ -162,11 +192,11 @@ export default function NewReservationForm({ clients, vehicles, reservations, te
           notes: notes || null,
         });
 
-        addNotification('Success', 'Reservation created successfully.', 'success');
+        addNotification('Success', 'Reservation updated successfully.', 'success');
         router.push(`/${tenantSlug}/reservations`);
       } catch (err: any) {
-        console.error('Failed to create reservation:', err);
-        addNotification('Error', err.message || 'Failed to create reservation.', 'error');
+        console.error('Failed to update reservation:', err);
+        addNotification('Error', err.message || 'Failed to update reservation.', 'error');
       }
     });
   };
@@ -281,7 +311,7 @@ export default function NewReservationForm({ clients, vehicles, reservations, te
                 step="any"
                 value={totalAmount}
                 onChange={(e) => setTotalAmount(e.target.value === '' ? '' : Number(e.target.value))}
-                className={`${inputClass} flex-1 min-w-0`}
+                className={`${inputClass} flex-1`}
                 placeholder="0.00"
               />
               <div className="relative w-24 flex-shrink-0">
@@ -306,11 +336,13 @@ export default function NewReservationForm({ clients, vehicles, reservations, te
               <select
                 required
                 value={status}
-                onChange={(e) => setStatus(e.target.value as 'PENDING' | 'CONFIRMED')}
+                onChange={(e) => setStatus(e.target.value as any)}
                 className={selectClass}
               >
                 <option value="PENDING">PENDING</option>
                 <option value="CONFIRMED">CONFIRMED</option>
+                <option value="CANCELLED">CANCELLED</option>
+                <option value="COMPLETED">COMPLETED</option>
               </select>
               <ChevronDown size={14} className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-slate-400" />
             </div>
@@ -331,20 +363,33 @@ export default function NewReservationForm({ clients, vehicles, reservations, te
       </div>
 
       {/* Action Buttons */}
-      <div className="flex items-center justify-end gap-3">
-        <Link
-          href={`/${tenantSlug}/reservations`}
-          className="px-5 py-2.5 border border-slate-200 text-slate-700 hover:bg-slate-50 transition-colors rounded-xl text-sm font-semibold"
-        >
-          Cancel
-        </Link>
-        <button
-          type="submit"
-          disabled={isPending}
-          className="px-5 py-2.5 bg-slate-900 text-white hover:bg-slate-800 transition-colors rounded-xl text-sm font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
-        >
-          {isPending ? 'Saving...' : 'Create Reservation'}
-        </button>
+      <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4">
+        <div>
+          {clientId && vehicleId && startDate && endDate && (
+            <Link
+              href={`/${tenantSlug}/contracts/new?reservationId=${reservation.id}&clientId=${clientId}&vehicleId=${vehicleId}&startDate=${startDate}&endDate=${endDate}&amount=${totalAmount}&currency=${currency}`}
+              className="inline-flex items-center justify-center gap-2 px-5 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white transition-colors rounded-xl text-sm font-bold shadow-lg shadow-emerald-600/10"
+            >
+              <FileText size={16} />
+              Convert to Contract
+            </Link>
+          )}
+        </div>
+        <div className="flex items-center justify-end gap-3">
+          <Link
+            href={`/${tenantSlug}/reservations`}
+            className="px-5 py-2.5 border border-slate-200 text-slate-700 hover:bg-slate-50 transition-colors rounded-xl text-sm font-semibold text-center"
+          >
+            Cancel
+          </Link>
+          <button
+            type="submit"
+            disabled={isPending}
+            className="px-5 py-2.5 bg-slate-900 text-white hover:bg-slate-800 transition-colors rounded-xl text-sm font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {isPending ? 'Saving...' : 'Save Changes'}
+          </button>
+        </div>
       </div>
     </form>
   );

@@ -258,10 +258,10 @@ export function generateNokhbaPDF(data: LuxuryPDFData): jsPDF {
   doc.text('RÉCAPITULATIF FINANCIER / FINANCIAL SUMMARY', TC2 + 5, y - 12 + 5.5);
 
   fy = y - 12 + 12;
-  const currencySymbol = data.currency || '€';
-  fy = kv(doc, TC2, fy, TCW + 4, 'Tarif / Daily Rate',   `${currencySymbol} ${data.dailyRate.toFixed(2)} / jour`);
+  const curr = data.currency || 'MAD';
+  fy = kv(doc, TC2, fy, TCW + 4, 'Tarif / Daily Rate',   `${curr} ${data.dailyRate.toFixed(2)} / jour`);
   silverRule(doc, TC2 + 2, fy - 1, TCW);
-  fy = kv(doc, TC2, fy, TCW + 4, 'Dépôt / Deposit',      `${currencySymbol} ${data.depositAmount.toFixed(2)}`);
+  fy = kv(doc, TC2, fy, TCW + 4, 'Dépôt / Deposit',      `${curr} ${data.depositAmount.toFixed(2)}`);
   silverRule(doc, TC2 + 2, fy - 1, TCW);
 
   // Total — emphasized
@@ -272,7 +272,7 @@ export function generateNokhbaPDF(data: LuxuryPDFData): jsPDF {
   tc(doc, DARK);
   doc.text('TOTAL', TC2 + 5, fy + 4.5);
   doc.setFontSize(10);
-  doc.text(`${currencySymbol} ${data.totalAmount.toFixed(2)}`, TC2 + TCW - 2, fy + 4.5, { align: 'right' });
+  doc.text(`${curr} ${data.totalAmount.toFixed(2)}`, TC2 + TCW - 2, fy + 4.5, { align: 'right' });
 
   y += termsPanelH + 5;
 
