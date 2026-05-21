@@ -8,7 +8,7 @@ import type { Vehicle } from '@/types';
 
 type CalendarEvent = {
   id: string;
-  type: 'reservation' | 'contract';
+  type: 'reservation' | 'contract' | 'maintenance';
   vehicle_id: string;
   startDate: Date;
   endDate: Date;
@@ -22,6 +22,7 @@ type Props = {
   vehicles: Vehicle[];
   contracts: any[];
   reservations: any[];
+  maintenances: any[];
   viewStart: string;
   viewEnd: string;
   tenantSlug: string;
@@ -34,6 +35,7 @@ export default function AvailabilityCalendarUI({
   vehicles,
   contracts,
   reservations,
+  maintenances,
   tenantSlug,
   initialYear,
   initialMonth,
@@ -76,9 +78,23 @@ export default function AvailabilityCalendarUI({
         refNumber: c.contract_number || 'CTR-XXX'
       });
     });
+
+    maintenances.forEach((m) => {
+      evMap.set(m.id, {
+        id: m.id,
+        type: 'maintenance',
+        vehicle_id: m.vehicle_id,
+        startDate: new Date(m.start_date),
+        endDate: new Date(m.end_date),
+        status: m.status,
+        clientName: '-',
+        vehicleName: getVehicleName(m.vehicle_id),
+        refNumber: m.reason || 'Maintenance'
+      });
+    });
     
     return Array.from(evMap.values());
-  }, [contracts, reservations, vehicles]);
+  }, [contracts, reservations, maintenances, vehicles]);
 
   const [currentDate, setCurrentDate] = useState<Date | null>(null);
   const [isMounted, setIsMounted] = useState(false);
@@ -106,7 +122,7 @@ export default function AvailabilityCalendarUI({
 
   if (!isMounted || !currentDate) {
     return (
-      <div className="flex justify-center items-center h-64 bg-slate-50 dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 animate-pulse">
+      <div className="flex justify-center items-center h-64 bg-slate-50 rounded-2xl border border-slate-200 animate-pulse">
         <p className="text-slate-400 font-bold tracking-widest uppercase text-sm">Loading Calendar...</p>
       </div>
     );
@@ -145,14 +161,14 @@ export default function AvailabilityCalendarUI({
   const prefixCellsArray = Array.from({ length: prefixCount }, (_, i) => i);
 
   const updateURL = (d: Date) => {
-    router.push(`/${tenantSlug}/availability?year=${d.getFullYear()}&month=${d.getMonth()}&day=${d.getDate()}`);
+    router.push(`?year=${d.getFullYear()}&month=${d.getMonth()}&day=${d.getDate()}`, { scroll: false });
   };
 
   const handlePrev = () => {
     const d = new Date(currentDate);
     if (viewMode === 'monthly') {
-      d.setMonth(d.getMonth() - 1);
       d.setDate(1);
+      d.setMonth(d.getMonth() - 1);
     } else if (viewMode === 'weekly') {
       d.setDate(d.getDate() - 7);
     } else if (viewMode === 'daily') {
@@ -164,8 +180,8 @@ export default function AvailabilityCalendarUI({
   const handleNext = () => {
     const d = new Date(currentDate);
     if (viewMode === 'monthly') {
-      d.setMonth(d.getMonth() + 1);
       d.setDate(1);
+      d.setMonth(d.getMonth() + 1);
     } else if (viewMode === 'weekly') {
       d.setDate(d.getDate() + 7);
     } else if (viewMode === 'daily') {
@@ -182,17 +198,17 @@ export default function AvailabilityCalendarUI({
   };
 
   // KPI Calculations
-  const todayStart = new Date();
-  todayStart.setHours(0, 0, 0, 0);
-  const todayEnd = new Date();
-  todayEnd.setHours(23, 59, 59, 999);
+  const kpiStart = new Date(currentDate);
+  kpiStart.setHours(0, 0, 0, 0);
+  const kpiEnd = new Date(currentDate);
+  kpiEnd.setHours(23, 59, 59, 999);
 
   const activeBookings = new Set<string>();
   const activeMaintenance = new Set<string>();
 
   allEvents.forEach(ev => {
-    if (ev.startDate <= todayEnd && ev.endDate >= todayStart) {
-      if (ev.status.toLowerCase() === 'maintenance' || ev.status.toLowerCase() === 'unavailable') {
+    if (ev.startDate <= kpiEnd && ev.endDate >= kpiStart) {
+      if (ev.type === 'maintenance' || ev.status.toLowerCase() === 'maintenance' || ev.status.toLowerCase() === 'unavailable') {
         activeMaintenance.add(ev.vehicle_id);
       } else if (ev.status.toLowerCase() !== 'cancelled') {
         activeBookings.add(ev.vehicle_id);
@@ -219,26 +235,21 @@ export default function AvailabilityCalendarUI({
   };
 
   return (
-    <div className="p-6 flex flex-col gap-6 max-w-[1280px] mx-auto text-slate-900 dark:text-white" dir="ltr">
+    <div className="flex flex-col gap-6 w-full text-slate-900" dir="ltr">
       
       {/* Header Actions & Filters */}
-      <div className="flex flex-col md:flex-row md:items-end justify-end gap-4">
-        {/* We removed the redundant Fleet Availability title here so the parent page handles it */}
-        <div className="flex items-center gap-2 bg-white dark:bg-slate-950 p-1 rounded-lg border border-slate-200 dark:border-slate-800">
-          <button onClick={() => setViewMode('daily')} className={cn("px-4 py-1.5 rounded text-xs font-medium transition-all", viewMode === 'daily' ? "bg-slate-900 dark:bg-white text-white dark:text-slate-900" : "text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-900")}>Daily</button>
-          <button onClick={() => setViewMode('weekly')} className={cn("px-4 py-1.5 rounded text-xs font-medium transition-all", viewMode === 'weekly' ? "bg-slate-900 dark:bg-white text-white dark:text-slate-900" : "text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-900")}>Weekly</button>
-          <button onClick={() => setViewMode('monthly')} className={cn("px-4 py-1.5 rounded text-xs font-medium transition-all", viewMode === 'monthly' ? "bg-slate-900 dark:bg-white text-white dark:text-slate-900" : "text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-900")}>Monthly</button>
-        </div>
+      <div className="flex flex-col md:flex-row md:items-end justify-end gap-4 hidden">
+        {/* Intentionally hidden, buttons moved to calendar header */}
       </div>
 
       {/* Filters Bento */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <div className="bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 p-4 rounded-lg flex flex-col gap-1">
-          <span className="text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider">Brand</span>
+        <div className="bg-white border border-slate-200 p-4 rounded-lg flex flex-col gap-1">
+          <span className="text-xs font-medium text-slate-500 uppercase tracking-wider">Brand</span>
           <select 
             value={selectedCategory}
             onChange={(e) => setSelectedCategory(e.target.value)}
-            className="bg-transparent border-none p-0 text-lg font-semibold text-slate-900 dark:text-white focus:ring-0"
+            className="bg-transparent border-none p-0 text-lg font-semibold text-slate-900 focus:ring-0"
           >
             <option value="All Brands">All Brands</option>
             {uniqueCategories.map(cat => (
@@ -247,26 +258,26 @@ export default function AvailabilityCalendarUI({
           </select>
         </div>
         
-        <div className="bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 p-4 rounded-lg flex flex-col gap-1">
-          <span className="text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider">Date Range</span>
+        <div className="bg-white border border-slate-200 p-4 rounded-lg flex flex-col gap-1">
+          <span className="text-xs font-medium text-slate-500 uppercase tracking-wider">Date Range</span>
           <div className="flex items-center justify-between cursor-pointer">
-            <span className="text-lg font-semibold text-slate-900 dark:text-white">
+            <span className="text-lg font-semibold text-slate-900">
               {dateRangeText}
             </span>
-            <CalendarIcon size={20} className="text-slate-500 dark:text-slate-400" />
+            <CalendarIcon size={20} className="text-slate-500" />
           </div>
         </div>
 
-        <div className="bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 p-4 rounded-lg flex flex-col gap-1 justify-center">
-          <span className="text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1">Status</span>
+        <div className="bg-white border border-slate-200 p-4 rounded-lg flex flex-col gap-1 justify-center">
+          <span className="text-xs font-medium text-slate-500 uppercase tracking-wider mb-1">Status</span>
           <div className="flex gap-4">
             <div className="flex items-center gap-1.5">
               <div className="w-2.5 h-2.5 rounded-full bg-blue-600"></div>
-              <span className="text-xs font-medium text-slate-900 dark:text-white">Booked</span>
+              <span className="text-xs font-medium text-slate-900">Booked</span>
             </div>
             <div className="flex items-center gap-1.5">
               <div className="w-2.5 h-2.5 rounded-full bg-amber-500"></div>
-              <span className="text-xs font-medium text-slate-900 dark:text-white">Maintenance</span>
+              <span className="text-xs font-medium text-slate-900">Maintenance</span>
             </div>
           </div>
         </div>
@@ -274,7 +285,7 @@ export default function AvailabilityCalendarUI({
         <div className="flex items-center justify-end">
           <button 
             onClick={() => router.push(`/${tenantSlug}/reservations/new`)}
-            className="bg-slate-900 dark:bg-white text-white dark:text-slate-900 px-6 py-4 rounded-lg text-lg font-semibold flex items-center justify-center gap-2 hover:opacity-90 active:scale-95 transition-all w-full md:w-auto h-full"
+            className="bg-slate-900 text-white px-6 py-4 rounded-lg text-lg font-semibold flex items-center justify-center gap-2 hover:opacity-90 active:scale-95 transition-all w-full md:w-auto h-full"
           >
             <Plus size={24} /> Add New Reservation
           </button>
@@ -282,34 +293,43 @@ export default function AvailabilityCalendarUI({
       </div>
 
       {/* Timeline / Calendar View */}
-      <div className="bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl overflow-hidden shadow-sm flex flex-col">
+      <div className="bg-white border border-slate-200 rounded-xl overflow-hidden shadow-sm flex flex-col">
         
-        <div className="p-6 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between">
+        <div className="p-6 border-b border-slate-200 flex flex-col md:flex-row items-center justify-between gap-4">
           <div className="flex items-center gap-4">
-            <h3 className="text-lg font-semibold text-slate-900 dark:text-white">
+            <h3 className="text-lg font-semibold text-slate-900">
               {currentDate.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}
             </h3>
             <div className="flex items-center gap-1">
-              <button onClick={handlePrev} className="p-1 hover:bg-slate-50 dark:hover:bg-slate-900 rounded transition-colors text-slate-500 dark:text-slate-400"><ChevronLeft size={24} /></button>
-              <button onClick={handleNext} className="p-1 hover:bg-slate-50 dark:hover:bg-slate-900 rounded transition-colors text-slate-500 dark:text-slate-400"><ChevronRight size={24} /></button>
+              <button onClick={handlePrev} className="p-1 hover:bg-slate-50 rounded transition-colors text-slate-500"><ChevronLeft size={24} /></button>
+              <button onClick={handleNext} className="p-1 hover:bg-slate-50 rounded transition-colors text-slate-500"><ChevronRight size={24} /></button>
             </div>
           </div>
-          <div className="flex gap-2">
-            <div className="flex items-center gap-2">
-              <div className="w-3 h-3 rounded-full bg-blue-600"></div>
-              <span className="text-xs font-medium text-slate-500 dark:text-slate-400">Booked</span>
+          
+          <div className="flex items-center gap-4">
+            <div className="flex items-center gap-1 bg-slate-50 p-1 rounded-lg border border-slate-200">
+              <button onClick={() => setViewMode('daily')} className={cn("px-4 py-1.5 rounded text-xs font-medium transition-all", viewMode === 'daily' ? "bg-white text-slate-900 shadow-sm" : "text-slate-500 hover:text-slate-700")}>Daily</button>
+              <button onClick={() => setViewMode('weekly')} className={cn("px-4 py-1.5 rounded text-xs font-medium transition-all", viewMode === 'weekly' ? "bg-white text-slate-900 shadow-sm" : "text-slate-500 hover:text-slate-700")}>Weekly</button>
+              <button onClick={() => setViewMode('monthly')} className={cn("px-4 py-1.5 rounded text-xs font-medium transition-all", viewMode === 'monthly' ? "bg-white text-slate-900 shadow-sm" : "text-slate-500 hover:text-slate-700")}>Monthly</button>
             </div>
-            <div className="flex items-center gap-2">
-              <div className="w-3 h-3 rounded-full bg-amber-500"></div>
-              <span className="text-xs font-medium text-slate-500 dark:text-slate-400">Maintenance</span>
+            
+            <div className="hidden md:flex gap-4 ml-2 border-l border-slate-200 pl-4">
+              <div className="flex items-center gap-2">
+                <div className="w-3 h-3 rounded-full bg-blue-600"></div>
+                <span className="text-xs font-medium text-slate-500">Booked</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <div className="w-3 h-3 rounded-full bg-amber-500"></div>
+                <span className="text-xs font-medium text-slate-500">Maintenance</span>
+              </div>
             </div>
           </div>
         </div>
 
         {viewMode !== 'daily' && (
-          <div className="grid grid-cols-7 border-b border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900">
+          <div className="grid grid-cols-7 border-b border-slate-200 bg-slate-50">
             {['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'].map((day) => (
-              <div key={day} className="p-2 text-center text-xs font-medium text-slate-500 dark:text-slate-400 border-r border-slate-200 dark:border-slate-800 last:border-r-0">
+              <div key={day} className="p-2 text-center text-xs font-medium text-slate-500 border-r border-slate-200 last:border-r-0">
                 {day}
               </div>
             ))}
@@ -317,14 +337,14 @@ export default function AvailabilityCalendarUI({
         )}
         
         {viewMode === 'daily' && (
-          <div className="border-b border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900 p-2 text-center text-xs font-medium text-slate-500 dark:text-slate-400">
+          <div className="border-b border-slate-200 bg-slate-50 p-2 text-center text-xs font-medium text-slate-500">
             {currentDate.toLocaleDateString('en-US', { weekday: 'long' })}
           </div>
         )}
 
         <div className={cn("grid", viewMode === 'daily' ? "grid-cols-1" : "grid-cols-7")}>
           {prefixCellsArray.map(idx => (
-            <div key={`prefix-${idx}`} className="min-h-[120px] p-2 border-r border-b border-slate-200 dark:border-slate-800 bg-white/50 dark:bg-slate-950/50"></div>
+            <div key={`prefix-${idx}`} className="min-h-[120px] p-2 border-r border-b border-slate-200 bg-white/50"></div>
           ))}
 
           {displayDays.map((day, idx) => {
@@ -358,12 +378,12 @@ export default function AvailabilityCalendarUI({
 
             return (
               <div key={day.toISOString()} className={cn(
-                "min-h-[120px] p-2 border-b border-slate-200 dark:border-slate-800 flex flex-col gap-1",
-                !isLastCol && "border-r border-slate-200 dark:border-slate-800"
+                "min-h-[120px] p-2 border-b border-slate-200 flex flex-col gap-1",
+                !isLastCol && "border-r border-slate-200"
               )}>
                 <span className={cn(
                   "text-xs font-medium mb-1",
-                  today ? "text-blue-600 font-bold" : "text-slate-500 dark:text-slate-400"
+                  today ? "text-blue-600 font-bold" : "text-slate-500"
                 )}>
                   {day.getDate()} {today && '(Today)'}
                 </span>
@@ -371,11 +391,11 @@ export default function AvailabilityCalendarUI({
                 {/* Pill Container strictly constrained via max-height */}
                 <div className="flex flex-col gap-1 flex-1 max-h-32 overflow-y-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
                   {uniqueDayEvents.map(ev => {
-                    const isMaintenance = ev.status.toLowerCase() === 'maintenance' || ev.status.toLowerCase() === 'unavailable';
+                    const isMaintenance = ev.type === 'maintenance' || ev.status.toLowerCase() === 'maintenance' || ev.status.toLowerCase() === 'unavailable';
                     
                     let pillClass = "bg-blue-600/10 text-blue-600 border-blue-600/20";
                     if (isMaintenance) {
-                      pillClass = "bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-red-200 dark:border-red-900";
+                      pillClass = "bg-slate-100 text-slate-700 border-red-200";
                     } else if (ev.type === 'reservation') {
                       pillClass = "bg-amber-500/10 text-amber-600 border-amber-500/20";
                     } else if (ev.type === 'contract') {
@@ -392,9 +412,10 @@ export default function AvailabilityCalendarUI({
                           e.stopPropagation();
                           if (ev.type === 'reservation') {
                             router.push(`/${tenantSlug}/reservations/${ev.id}/edit`);
-                          } else {
+                          } else if (ev.type === 'contract') {
                             router.push(`/${tenantSlug}/contracts/${ev.id}/edit`);
                           }
+                          // Ignore click for maintenance for now as no edit page is defined
                         }}
                         className={cn("text-[10px] p-1 rounded border truncate cursor-pointer", pillClass)}
                       >
@@ -411,19 +432,19 @@ export default function AvailabilityCalendarUI({
 
       {/* Summary Stats */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <div className="bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 p-6 rounded-xl shadow-sm flex items-center justify-between">
+        <div className="bg-white border border-slate-200 p-6 rounded-xl shadow-sm flex items-center justify-between">
           <div className="flex flex-col gap-1">
-            <span className="text-xs font-medium text-slate-500 dark:text-slate-400">Daily Occupancy Rate</span>
-            <span className="text-3xl font-bold text-slate-900 dark:text-white">{occupancyRate}%</span>
+            <span className="text-xs font-medium text-slate-500">Daily Occupancy Rate</span>
+            <span className="text-3xl font-bold text-slate-900">{occupancyRate}%</span>
           </div>
           <div className="w-12 h-12 rounded-full bg-blue-600/10 flex items-center justify-center">
             <Percent className="text-blue-600" size={24} />
           </div>
         </div>
 
-        <div className="bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 p-6 rounded-xl shadow-sm flex items-center justify-between">
+        <div className="bg-white border border-slate-200 p-6 rounded-xl shadow-sm flex items-center justify-between">
           <div className="flex flex-col gap-1">
-            <span className="text-xs font-medium text-slate-500 dark:text-slate-400">Vehicles Under Maintenance</span>
+            <span className="text-xs font-medium text-slate-500">Vehicles Under Maintenance</span>
             <span className="text-3xl font-bold text-amber-500">{maintCount}</span>
           </div>
           <div className="w-12 h-12 rounded-full bg-amber-500/10 flex items-center justify-center">
@@ -431,9 +452,9 @@ export default function AvailabilityCalendarUI({
           </div>
         </div>
 
-        <div className="bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 p-6 rounded-xl shadow-sm flex items-center justify-between">
+        <div className="bg-white border border-slate-200 p-6 rounded-xl shadow-sm flex items-center justify-between">
           <div className="flex flex-col gap-1">
-            <span className="text-xs font-medium text-slate-500 dark:text-slate-400">Available Vehicles</span>
+            <span className="text-xs font-medium text-slate-500">Available Vehicles</span>
             <span className="text-3xl font-bold text-blue-600">{availableVehicles}</span>
           </div>
           <div className="w-12 h-12 rounded-full bg-blue-600/10 flex items-center justify-center">

@@ -41,6 +41,21 @@ export type Vehicle = {
 
 export type ContractStatus = 'draft' | 'pending_signature' | 'signed' | 'active' | 'completed' | 'cancelled';
 
+export type VehicleMaintenanceStatus = 'scheduled' | 'in_progress' | 'completed';
+
+export type VehicleMaintenance = {
+  id: string;
+  tenant_id: string;
+  vehicle_id: string;
+  start_date: string;
+  end_date: string;
+  reason: string;
+  status: VehicleMaintenanceStatus;
+  cost: number | null;
+  created_at?: string;
+  updated_at?: string;
+};
+
 export type Contract = {
   id: string;
   tenant_id: string;
