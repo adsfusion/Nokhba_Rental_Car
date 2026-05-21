@@ -35,11 +35,11 @@ export interface LuxuryPDFData {
   dailyRate:      number;
   depositAmount:  number;
   totalAmount:    number;
+  currency?:      string;
 
   // Signature — caller must pass a validated `data:image/png;base64,...` string
   signaturePng?:  string;
   signedAt?:      string;
-  currency?:      string;
 }
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
@@ -257,10 +257,11 @@ export function generateNokhbaPDF(data: LuxuryPDFData): jsPDF {
   tc(doc, GOLD);
   doc.text('RÉCAPITULATIF FINANCIER / FINANCIAL SUMMARY', TC2 + 5, y - 12 + 5.5);
 
-  fy = y - 12 + 12;
   const curr = data.currency || 'MAD';
+  fy = y - 12 + 12;
   fy = kv(doc, TC2, fy, TCW + 4, 'Tarif / Daily Rate',   `${curr} ${data.dailyRate.toFixed(2)} / jour`);
   silverRule(doc, TC2 + 2, fy - 1, TCW);
+  fy = kv(doc, TC2, fy, TCW + 4, 'Durée / Duration',     `${data.totalDays} jours`);
   fy = kv(doc, TC2, fy, TCW + 4, 'Dépôt / Deposit',      `${curr} ${data.depositAmount.toFixed(2)}`);
   silverRule(doc, TC2 + 2, fy - 1, TCW);
 
@@ -272,7 +273,7 @@ export function generateNokhbaPDF(data: LuxuryPDFData): jsPDF {
   tc(doc, DARK);
   doc.text('TOTAL', TC2 + 5, fy + 4.5);
   doc.setFontSize(10);
-  doc.text(`${curr} ${data.totalAmount.toFixed(2)}`, TC2 + TCW - 2, fy + 4.5, { align: 'right' });
+  doc.text(`${data.currency || 'MAD'} ${data.totalAmount.toFixed(2)}`, TC2 + TCW - 2, fy + 4.5, { align: 'right' });
 
   y += termsPanelH + 5;
 
