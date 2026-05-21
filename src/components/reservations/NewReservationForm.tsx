@@ -1,7 +1,7 @@
 'use client';
 
-import { useState, useTransition, useMemo, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
+import { useState, useTransition, useMemo, useEffect, Suspense } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { ChevronDown, Calendar, AlertCircle } from 'lucide-react';
 import { addReservation } from '@/lib/actions/reservations';
@@ -30,8 +30,9 @@ function toLocalDateString(date: Date): string {
   return `${yyyy}-${mm}-${dd}`;
 }
 
-export default function NewReservationForm({ clients, vehicles, reservations, tenantSlug }: Props) {
+function NewReservationFormInner({ clients, vehicles, reservations, tenantSlug }: Props) {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { addNotification } = useNotifications();
   const [isPending, startTransition] = useTransition();
 
@@ -48,12 +49,30 @@ export default function NewReservationForm({ clients, vehicles, reservations, te
   // Hydration-safe initial local dates on client mount
   const [isMounted, setIsMounted] = useState(false);
   useEffect(() => {
-    const now = new Date();
-    const tomorrow = new Date(now.getTime() + 24 * 60 * 60 * 1000);
-    setStartDate(toLocalDateString(now));
-    setEndDate(toLocalDateString(tomorrow));
+    const paramStart = searchParams.get('start_date');
+    const paramEnd = searchParams.get('end_date');
+    const paramVehicle = searchParams.get('vehicle_id');
+
+    if (paramStart) {
+      setStartDate(paramStart);
+    } else {
+      const now = new Date();
+      setStartDate(toLocalDateString(now));
+    }
+
+    if (paramEnd) {
+      setEndDate(paramEnd);
+    } else {
+      const tomorrow = new Date(new Date().getTime() + 24 * 60 * 60 * 1000);
+      setEndDate(toLocalDateString(tomorrow));
+    }
+
+    if (paramVehicle) {
+      setVehicleId(paramVehicle);
+    }
+
     setIsMounted(true);
-  }, []);
+  }, [searchParams]);
 
   // Format date state string for input binding, handling timezone suffix removal
   const formatForInput = (val: string) => {
@@ -347,5 +366,13 @@ export default function NewReservationForm({ clients, vehicles, reservations, te
         </button>
       </div>
     </form>
+  );
+}
+
+export default function NewReservationForm(props: Props) {
+  return (
+    <Suspense fallback={<div className="p-8 text-center text-slate-500 animate-pulse">Loading form...</div>}>
+      <NewReservationFormInner {...props} />
+    </Suspense>
   );
 }
