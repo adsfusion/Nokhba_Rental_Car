@@ -13,7 +13,7 @@ export default function SaasSettingsPage() {
           <Settings size={40} />
         </div>
         <h3 className="text-xl font-bold text-slate-900 mb-2 uppercase tracking-wide">Settings Module</h3>
-        <p className="text-sm max-w-xs">
+        <p className="text-sm max-w-lg mx-auto text-center text-slate-500">
           This module is currently under development. Here you will be able to manage global platform configurations.
         </p>
       </div>
