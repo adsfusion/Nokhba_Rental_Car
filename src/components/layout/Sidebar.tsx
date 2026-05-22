@@ -26,7 +26,7 @@ type NavItem = {
   badge?: string;
 };
 
-export function Sidebar() {
+export function Sidebar({ tenantName = 'Nokhba Rental' }: { tenantName?: string }) {
   const { open: isOpen, close } = useSidebar();
   const pathname = usePathname();
   const params = useParams();
@@ -51,6 +51,8 @@ export function Sidebar() {
     { title: 'Subscription', icon: Wallet, href: `${prefix}/subscription` },
   ];
 
+  const avatarLetter = tenantName.charAt(0).toUpperCase();
+
   return (
     <>
       <div
@@ -70,10 +72,10 @@ export function Sidebar() {
         <div className="flex flex-col h-full">
           <div className="h-16 flex items-center px-6 border-b border-slate-100">
             <div className="flex items-center gap-3">
-              <div className="w-8 h-8 rounded-lg bg-slate-900 flex items-center justify-center text-white font-bold text-sm">
-                N
+              <div className="w-8 h-8 rounded-lg bg-slate-900 flex items-center justify-center text-white font-bold text-sm shrink-0">
+                {avatarLetter}
               </div>
-              <span className="font-semibold text-lg tracking-tight">Nokhba Rental</span>
+              <span className="font-semibold text-lg tracking-tight truncate" title={tenantName}>{tenantName}</span>
             </div>
           </div>
 

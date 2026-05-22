@@ -4,11 +4,17 @@ import { revalidatePath } from 'next/cache';
 import { createSupabaseServerClient } from '../supabase/server';
 import type { Client } from '@/types';
 
+import { getCurrentTenantId } from '../utils/tenant';
+
 export async function getClients(): Promise<Client[]> {
   const supabase = await createSupabaseServerClient();
+  const tenantId = await getCurrentTenantId();
+  if (!tenantId) throw new Error('Tenant ID required');
+
   const { data, error } = await supabase
     .from('clients')
     .select('*')
+    .eq('tenant_id', tenantId)
     .order('created_at', { ascending: false });
 
   if (error) throw error;
@@ -17,9 +23,13 @@ export async function getClients(): Promise<Client[]> {
 
 export async function getClientById(id: string): Promise<Client | null> {
   const supabase = await createSupabaseServerClient();
+  const tenantId = await getCurrentTenantId();
+  if (!tenantId) throw new Error('Tenant ID required');
+
   const { data, error } = await supabase
     .from('clients')
     .select('*')
+    .eq('tenant_id', tenantId)
     .eq('id', id)
     .maybeSingle();
 

@@ -4,6 +4,8 @@ import { revalidatePath } from 'next/cache';
 import { createSupabaseServerClient } from '../supabase/server';
 import type { Reservation } from '@/types';
 
+import { getCurrentTenantId } from '../utils/tenant';
+
 export type ReservationWithDetails = Reservation & {
   clients?: any;
   vehicles?: any;
@@ -11,32 +13,28 @@ export type ReservationWithDetails = Reservation & {
 
 export async function getReservations(tenantSlug?: string): Promise<ReservationWithDetails[]> {
   const supabase = await createSupabaseServerClient();
-  let query = supabase
+  const tenantId = await getCurrentTenantId();
+  if (!tenantId) throw new Error('Tenant ID required');
+
+  const { data, error } = await supabase
     .from('reservations')
     .select('*, clients(*), vehicles(*)')
+    .eq('tenant_id', tenantId)
     .order('created_at', { ascending: false });
 
-  if (tenantSlug) {
-    const { data: tenant } = await supabase
-      .from('tenants')
-      .select('id')
-      .eq('slug', tenantSlug)
-      .single();
-    if (tenant?.id) {
-      query = query.eq('tenant_id', tenant.id);
-    }
-  }
-
-  const { data, error } = await query;
   if (error) throw error;
   return (data ?? []) as ReservationWithDetails[];
 }
 
 export async function getReservationById(id: string): Promise<ReservationWithDetails | null> {
   const supabase = await createSupabaseServerClient();
+  const tenantId = await getCurrentTenantId();
+  if (!tenantId) throw new Error('Tenant ID required');
+
   const { data, error } = await supabase
     .from('reservations')
     .select('*, clients(*), vehicles(*)')
+    .eq('tenant_id', tenantId)
     .eq('id', id)
     .single();
 

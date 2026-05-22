@@ -4,11 +4,17 @@ import { revalidatePath } from 'next/cache';
 import { createSupabaseServerClient } from '../supabase/server';
 import type { Vehicle } from '@/types';
 
+import { getCurrentTenantId } from '../utils/tenant';
+
 export async function getVehicles(): Promise<Vehicle[]> {
   const supabase = await createSupabaseServerClient();
+  const tenantId = await getCurrentTenantId();
+  if (!tenantId) throw new Error('Tenant ID required');
+
   const { data, error } = await supabase
     .from('vehicles')
     .select('*')
+    .eq('tenant_id', tenantId)
     .order('created_at', { ascending: false });
 
   if (error) throw error;
@@ -17,9 +23,13 @@ export async function getVehicles(): Promise<Vehicle[]> {
 
 export async function getAvailableVehicles(): Promise<Vehicle[]> {
   const supabase = await createSupabaseServerClient();
+  const tenantId = await getCurrentTenantId();
+  if (!tenantId) throw new Error('Tenant ID required');
+
   const { data, error } = await supabase
     .from('vehicles')
     .select('*')
+    .eq('tenant_id', tenantId)
     .eq('status', 'available')
     .order('created_at', { ascending: false });
 

@@ -35,11 +35,13 @@
     "@types/react-dom": "^19.0.0",
     "@types/react-signature-canvas": "^1.0.7",
     "autoprefixer": "^10.4.21",
+    "dotenv": "^17.4.2",
     "eslint": "^9",
     "eslint-config-next": "15.3.2",
     "postcss": "^8.5.3",
     "puppeteer": "^25.0.4",
     "tailwindcss": "^4.1.14",
+    "tsx": "^4.22.3",
     "typescript": "~5.8.2"
   }
 }

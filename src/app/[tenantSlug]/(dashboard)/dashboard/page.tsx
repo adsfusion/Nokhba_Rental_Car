@@ -1,26 +1,79 @@
 import Link from 'next/link';
 import { Car, Users, FileText, Bell } from 'lucide-react';
+import { createSupabaseServerClient } from '@/lib/supabase/server';
+import { getCurrentTenantId } from '@/lib/utils/tenant';
 
 export default async function DashboardPage({ params }: { params: Promise<{ tenantSlug: string }> }) {
   const { tenantSlug } = await params;
+  const supabase = await createSupabaseServerClient();
+  const tenantId = await getCurrentTenantId();
+
+  if (!tenantId) {
+    return <div>Tenant context required</div>;
+  }
+
+  // 1. Active Contracts
+  const { count: activeContracts } = await supabase
+    .from('contracts')
+    .select('*', { count: 'exact', head: true })
+    .eq('tenant_id', tenantId)
+    .neq('status', 'cancelled')
+    .neq('status', 'completed');
+
+  // 2. Available Cars
+  const { count: availableCars } = await supabase
+    .from('vehicles')
+    .select('*', { count: 'exact', head: true })
+    .eq('tenant_id', tenantId)
+    .eq('status', 'available');
+
+  // 3. Total Cars
+  const { count: totalCars } = await supabase
+    .from('vehicles')
+    .select('*', { count: 'exact', head: true })
+    .eq('tenant_id', tenantId);
+
+  // 4. Revenue MTD
+  const now = new Date();
+  const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1).toISOString();
+  const { data: monthContracts } = await supabase
+    .from('contracts')
+    .select('total_amount')
+    .eq('tenant_id', tenantId)
+    .gte('start_date', startOfMonth);
+
+  const revenue = monthContracts?.reduce((sum, c) => sum + (Number(c.total_amount) || 0), 0) || 0;
+
+  // 5. Recent Activity
+  const { data: latestContracts } = await supabase
+    .from('contracts')
+    .select('id, created_at, clients(first_name, last_name), vehicles(brand, model)')
+    .eq('tenant_id', tenantId)
+    .order('created_at', { ascending: false })
+    .limit(4);
+
+  const recentActivity = latestContracts?.map(c => ({
+    user: c.clients ? `${(c.clients as any).first_name} ${(c.clients as any).last_name}` : 'Unknown Client',
+    action: 'signed contract',
+    target: c.vehicles ? `${(c.vehicles as any).brand} ${(c.vehicles as any).model}` : 'Unknown Vehicle',
+    time: new Date(c.created_at).toLocaleDateString(),
+    icon: FileText,
+    color: 'text-blue-600',
+    bg: 'bg-blue-50'
+  })) || [];
+
   const stats = [
-    { label: 'Active Contracts', value: '24', trend: '+12%', color: 'text-blue-600' },
-    { label: 'Available Cars', value: '8', trend: '32 total', color: 'text-green-600' },
-    { label: 'Upcoming Returns', value: '3', trend: 'Today', color: 'text-amber-600' },
-    { label: 'Revenue (MTD)', value: '€42,500', trend: '+18.2%', color: 'text-slate-900' },
+    { label: 'Active Contracts', value: activeContracts?.toString() || '0', trend: 'Current', color: 'text-blue-600' },
+    { label: 'Available Cars', value: availableCars?.toString() || '0', trend: `${totalCars || 0} total`, color: 'text-green-600' },
+    { label: 'Upcoming Returns', value: '0', trend: 'Today', color: 'text-amber-600' },
+    { label: 'Revenue (MTD)', value: `€${revenue.toLocaleString()}`, trend: 'This Month', color: 'text-slate-900' },
   ];
 
-  const recentActivity = [
-    { user: 'Sarah Connor', action: 'signed contract', target: 'MERCEDES G-CLASS', time: '2 mins ago', icon: FileText, color: 'text-blue-600', bg: 'bg-blue-50' },
-    { user: 'James Bond', action: 'returned vehicle', target: 'ASTON MARTIN DB11', time: '1 hour ago', icon: Car, color: 'text-green-600', bg: 'bg-green-50' },
-    { user: 'John Wick', action: 'added new client', target: 'Vinci Group', time: '4 hours ago', icon: Users, color: 'text-purple-600', bg: 'bg-purple-50' },
-    { user: 'Ellen Ripley', action: 'reported issue', target: 'APC Carrier', time: 'Yesterday', icon: Bell, color: 'text-red-600', bg: 'bg-red-50' },
-  ];
-
+  const inUse = totalCars ? totalCars - (availableCars || 0) : 0;
   const fleetStatus = [
-    { label: 'In Use', value: 75, color: 'bg-blue-500' },
-    { label: 'Maintenance', value: 10, color: 'bg-amber-500' },
-    { label: 'Available', value: 15, color: 'bg-green-500' },
+    { label: 'In Use', value: totalCars ? Math.round((inUse / totalCars) * 100) : 0, color: 'bg-blue-500' },
+    { label: 'Maintenance', value: 0, color: 'bg-amber-500' },
+    { label: 'Available', value: totalCars ? Math.round(((availableCars || 0) / totalCars) * 100) : 0, color: 'bg-green-500' },
   ];
 
   return (
