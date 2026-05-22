@@ -12,6 +12,7 @@ import { createSupabaseBrowserClient } from '@/lib/supabase/client';
 import { cn } from '@/lib/utils';
 import { type ContractWithDetails, deleteContract, updateContractStatus } from '@/lib/actions/contracts';
 import { useNotifications } from '@/components/layout/NotificationProvider';
+import { formatCurrency } from '@/lib/utils/format';
 import { type DocumentType } from '@/lib/actions/clientDocuments';
 import { SignLinkPopover } from './SignLinkPopover';
 import { signatureUrlToPngBase64 } from '@/lib/signatureToBase64';
@@ -476,12 +477,12 @@ export function ContractDetail({ contract, docUrls }: Props) {
           <div className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-widest text-slate-400">
             <DollarSign size={12} /> Financials
           </div>
-          <p className="text-base font-bold text-slate-900">{contract.currency || 'MAD'} {totalAmount}</p>
+          <p className="text-base font-bold text-slate-900">{formatCurrency(totalAmount)}</p>
           <p className="text-sm text-slate-500">
-            {contract.currency || 'MAD'} {contract.daily_rate} × {contract.total_days} days
+            {formatCurrency(contract.daily_rate)} × {contract.total_days} days
           </p>
           {contract.deposit_amount != null && contract.deposit_amount > 0 && (
-            <p className="text-sm text-slate-500">Deposit: {contract.currency || 'MAD'} {contract.deposit_amount}</p>
+            <p className="text-sm text-slate-500">Deposit: {formatCurrency(contract.deposit_amount)}</p>
           )}
         </div>
       </div>

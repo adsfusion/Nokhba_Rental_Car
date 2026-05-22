@@ -6,6 +6,7 @@ import Link from 'next/link';
 import { ChevronDown, Calendar, AlertCircle } from 'lucide-react';
 import { addReservation } from '@/lib/actions/reservations';
 import { useNotifications } from '@/components/layout/NotificationProvider';
+import { formatCurrency } from '@/lib/utils/format';
 import type { Client, Vehicle, Reservation } from '@/types';
 
 // ── Shared style tokens ───────────────────────────────────────────────────────
@@ -273,7 +274,7 @@ function NewReservationFormInner({ clients, vehicles, reservations, tenantSlug }
                     <option value="">— Select Available Vehicle —</option>
                     {availableVehicles.map((v) => (
                       <option key={v.id} value={v.id}>
-                        {v.brand} {v.model} ({v.license_plate}) — {v.currency || 'MAD'} {v.daily_rate}/day
+                        {v.brand} {v.model} ({v.license_plate}) — {formatCurrency(v.daily_rate)}/day
                       </option>
                     ))}
                   </>

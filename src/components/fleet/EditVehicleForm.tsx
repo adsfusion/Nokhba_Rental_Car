@@ -6,6 +6,7 @@ import Link from 'next/link';
 import { Car, ArrowLeft, ImagePlus, Trash2, ClipboardCheck, ChevronDown } from 'lucide-react';
 import { updateVehicle } from '@/lib/actions/vehicles';
 import { useNotifications } from '@/components/layout/NotificationProvider';
+import { formatCurrency } from '@/lib/utils/format';
 import type { Vehicle, Contract } from '@/types';
 
 // ── Moroccan market car data ───────────────────────────────────────────────────
@@ -747,7 +748,7 @@ export default function EditVehicleForm({ vehicle, contracts, tenantSlug }: Prop
             <div className="space-y-3.5">
               <div className="flex justify-between items-center pb-3 border-b border-slate-100">
                 <span className="text-sm text-slate-500">Total Revenue</span>
-                <span className="text-sm font-bold text-slate-950">{form.currency || 'MAD'} {totalRevenue.toLocaleString()}</span>
+                <span className="text-sm font-bold text-slate-950">{formatCurrency(totalRevenue)}</span>
               </div>
               <div className="flex justify-between items-center pb-3 border-b border-slate-100">
                 <span className="text-sm text-slate-500">Current Branch</span>

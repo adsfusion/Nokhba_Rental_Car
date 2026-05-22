@@ -6,6 +6,7 @@ import { PenLine, Trash2, Calendar, FileText, Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { deleteReservation, type ReservationWithDetails } from '@/lib/actions/reservations';
 import { useNotifications } from '@/components/layout/NotificationProvider';
+import { formatCurrency } from '@/lib/utils/format';
 
 const STATUS_CONFIG: Record<string, { label: string; className: string }> = {
   PENDING: { label: 'Pending', className: 'bg-amber-50 border-amber-200 text-amber-700' },
@@ -88,7 +89,7 @@ export default function ReservationsTable({ reservations, tenantSlug }: Props) {
                 </div>
                 <div>
                   <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-1">Total</p>
-                  <p className="text-sm font-bold text-slate-900">{res.currency || 'MAD'} {res.total_amount}</p>
+                  <p className="text-sm font-bold text-slate-900">{formatCurrency(res.total_amount)}</p>
                   <span
                     className={cn(
                       'text-[10px] font-bold px-2 py-0.5 rounded-full inline-block mt-0.5 uppercase tracking-wide border',

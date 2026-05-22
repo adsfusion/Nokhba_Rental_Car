@@ -6,6 +6,7 @@ import { useParams } from 'next/navigation';
 import { Car, ChevronRight } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { Vehicle, Contract } from '@/types';
+import { formatCurrency } from '@/lib/utils/format';
 
 interface FleetTableProps {
   vehicles: Vehicle[];
@@ -225,7 +226,7 @@ export default function FleetTable({ vehicles, contracts }: FleetTableProps) {
                     <div className="text-right">
                       <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Daily Rate</p>
                       <p className="mt-0.5 font-bold text-slate-900">
-                        {vehicle.daily_rate ? `${vehicle.daily_rate.toLocaleString()} MAD` : '—'}{' '}
+                        {vehicle.daily_rate ? formatCurrency(vehicle.daily_rate) : '—'}{' '}
                         <span className="text-xs font-normal text-slate-500">/ day</span>
                       </p>
                     </div>

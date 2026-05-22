@@ -2,6 +2,7 @@ import Link from 'next/link';
 import { Car, Users, FileText, Bell } from 'lucide-react';
 import { createSupabaseServerClient } from '@/lib/supabase/server';
 import { getCurrentTenantId } from '@/lib/utils/tenant';
+import { formatCurrency } from '@/lib/utils/format';
 
 export default async function DashboardPage({ params }: { params: Promise<{ tenantSlug: string }> }) {
   const { tenantSlug } = await params;
@@ -66,7 +67,7 @@ export default async function DashboardPage({ params }: { params: Promise<{ tena
     { label: 'Active Contracts', value: activeContracts?.toString() || '0', trend: 'Current', color: 'text-blue-600' },
     { label: 'Available Cars', value: availableCars?.toString() || '0', trend: `${totalCars || 0} total`, color: 'text-green-600' },
     { label: 'Upcoming Returns', value: '0', trend: 'Today', color: 'text-amber-600' },
-    { label: 'Revenue (MTD)', value: `€${revenue.toLocaleString()}`, trend: 'This Month', color: 'text-slate-900' },
+    { label: 'Revenue (MTD)', value: formatCurrency(revenue), trend: 'This Month', color: 'text-slate-900' },
   ];
 
   const inUse = totalCars ? totalCars - (availableCars || 0) : 0;

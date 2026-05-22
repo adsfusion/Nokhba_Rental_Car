@@ -11,6 +11,7 @@ import { submitContractSignature } from '@/lib/actions/publicContracts';
 import { useNotifications } from '@/components/layout/NotificationProvider';
 import { SignLinkPopover } from './SignLinkPopover';
 import { type ContractWithDetails } from '@/lib/actions/contracts';
+import { formatCurrency } from '@/lib/utils/format';
 
 type EditFields = {
   start_date: string;
@@ -133,11 +134,11 @@ export function EditContractPage({ contract }: { contract: ContractWithDetails }
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="space-y-1.5">
-              <label className="text-xs font-bold uppercase tracking-wider text-slate-500">Daily Rate (€)</label>
+              <label className="text-xs font-bold uppercase tracking-wider text-slate-500">Daily Rate (MAD)</label>
               <input type="number" min="0" step="0.01" {...register('daily_rate', { valueAsNumber: true })} disabled={isLocked} className={inputClass} />
             </div>
             <div className="space-y-1.5">
-              <label className="text-xs font-bold uppercase tracking-wider text-slate-500">Security Deposit (€)</label>
+              <label className="text-xs font-bold uppercase tracking-wider text-slate-500">Security Deposit (MAD)</label>
               <input type="number" min="0" step="0.01" {...register('deposit_amount', { valueAsNumber: true })} disabled={isLocked} className={inputClass} />
             </div>
           </div>
@@ -145,9 +146,9 @@ export function EditContractPage({ contract }: { contract: ContractWithDetails }
           <div className="bg-slate-50 border border-slate-200 rounded-xl p-4 flex justify-between items-center">
             <div>
               <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400">Recalculated Total</p>
-              <p className="text-xs text-slate-500 mt-0.5">€{dailyRate} × {totalDays} {totalDays === 1 ? 'day' : 'days'}</p>
+              <p className="text-xs text-slate-500 mt-0.5">{formatCurrency(dailyRate)} × {totalDays} {totalDays === 1 ? 'day' : 'days'}</p>
             </div>
-            <p className="text-2xl font-bold text-slate-900">€{(Number(dailyRate) * totalDays).toFixed(0)}</p>
+            <p className="text-2xl font-bold text-slate-900">{formatCurrency(Number(dailyRate) * totalDays)}</p>
           </div>
 
           <div className="space-y-1.5">

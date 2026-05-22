@@ -4,8 +4,11 @@ import { useState, useTransition, useMemo, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { ChevronDown, Calendar, AlertCircle, FileText } from 'lucide-react';
+import { cn } from '@/lib/utils';
+import { createSupabaseBrowserClient } from '@/lib/supabase/client';
 import { updateReservation, type ReservationWithDetails } from '@/lib/actions/reservations';
 import { useNotifications } from '@/components/layout/NotificationProvider';
+import { formatCurrency } from '@/lib/utils/format';
 import type { Client, Vehicle, Reservation } from '@/types';
 
 // ── Shared style tokens ───────────────────────────────────────────────────────
@@ -284,7 +287,7 @@ export default function EditReservationForm({
                     <option value="">— Select Available Vehicle —</option>
                     {availableVehicles.map((v) => (
                       <option key={v.id} value={v.id}>
-                        {v.brand} {v.model} ({v.license_plate}) — {v.currency || 'MAD'} {v.daily_rate}/day
+                        {v.brand} {v.model} ({v.license_plate}) — {formatCurrency(v.daily_rate)}/day
                       </option>
                     ))}
                   </>
