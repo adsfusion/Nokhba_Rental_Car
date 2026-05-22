@@ -10,7 +10,7 @@ export default async function SaasAdminLayout({ children }: { children: ReactNod
   const { data: { user } } = await supabase.auth.getUser();
 
   if (!user) {
-    redirect('/saas-admin/login');
+    redirect('/login');
   }
 
   const { data: profile } = await supabase

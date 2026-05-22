@@ -9,7 +9,7 @@ export default async function SubscriptionsPage() {
   const supabase = await createSupabaseServerClient();
   const { data: { user } } = await supabase.auth.getUser();
 
-  if (!user) redirect('/saas-admin/login');
+  if (!user) redirect('/login');
 
   const { data: profile } = await supabase
     .from('profiles')
