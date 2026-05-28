@@ -6,6 +6,7 @@ import { getProfile } from '@/lib/actions/auth';
 import { cookies } from 'next/headers';
 import { stopImpersonation } from '@/lib/actions/impersonate';
 import { createSupabaseServerClient } from '@/lib/supabase/server';
+import { TrialExpiredModal } from '@/components/saas/TrialExpiredModal';
 
 export default async function TenantLayout({ children, params }: { children: React.ReactNode, params: Promise<{ tenantSlug: string }> }) {
   const profile = await getProfile();
@@ -16,8 +17,12 @@ export default async function TenantLayout({ children, params }: { children: Rea
   }
 
   const supabase = await createSupabaseServerClient();
-  const { data: tenantData } = await supabase.from('tenants').select('name').eq('slug', tenantSlug).single();
+  const { data: tenantData } = await supabase.from('tenants').select('name, subscription_end_date').eq('slug', tenantSlug).single();
   const tenantName = tenantData?.name || 'Nokhba Rental';
+
+  const isExpired = tenantData?.subscription_end_date 
+    ? new Date(tenantData.subscription_end_date) < new Date()
+    : false;
 
   const cookieStore = await cookies();
   const impersonatedId = cookieStore.get('nokhba_impersonate_tenant_id')?.value;
@@ -52,8 +57,12 @@ export default async function TenantLayout({ children, params }: { children: Rea
               userName={profile.full_name as string | undefined}
               userInitials={initials}
             />
-            <main className="flex-1 overflow-y-auto p-6 lg:p-8">
-              {children}
+            <main className="flex-1 overflow-y-auto p-6 lg:p-8 relative">
+              {isExpired ? (
+                <TrialExpiredModal tenantName={tenantName} />
+              ) : (
+                children
+              )}
             </main>
           </div>
         </div>
