@@ -66,7 +66,9 @@ export default async function SubscriptionsPage() {
               plans?.map((plan: any) => (
                 <tr key={plan.id} className="hover:bg-slate-50 transition-colors">
                   <td className="px-6 py-4">
-                    <span className="font-bold text-slate-900">{plan.name}</span>
+                    <Link href={`/saas-admin/subscriptions/${plan.id}`} className="font-bold text-slate-900 hover:text-blue-600 transition-colors">
+                      {plan.name}
+                    </Link>
                   </td>
                   <td className="px-6 py-4 text-slate-900 font-bold">
                     {plan.price} {plan.currency}
