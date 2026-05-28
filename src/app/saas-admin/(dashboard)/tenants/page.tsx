@@ -40,7 +40,7 @@ export default async function TenantsPage() {
   }
 
   return (
-    <div className="p-8 max-w-[1440px] mx-auto w-full">
+    <div className="space-y-8">
       <div className="flex justify-between items-end mb-8">
         <div>
           <h1 className="text-3xl font-black text-slate-900 tracking-tight">Tenants</h1>

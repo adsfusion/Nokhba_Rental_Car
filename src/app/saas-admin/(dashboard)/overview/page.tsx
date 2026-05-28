@@ -47,7 +47,7 @@ export default async function OverviewDashboard() {
   ];
 
   return (
-    <div className="p-8 max-w-[1440px] mx-auto w-full space-y-8">
+    <div className="space-y-8">
       <div>
         <h1 className="text-3xl font-black text-slate-900 tracking-tight">Platform Overview</h1>
         <p className="text-slate-500 mt-1 font-medium">High-level metrics and health status for the Nokhba SAAS.</p>

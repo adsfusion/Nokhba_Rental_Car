@@ -2,7 +2,7 @@ import { Settings } from 'lucide-react';
 
 export default function SaasSettingsPage() {
   return (
-    <div className="space-y-6">
+    <div className="w-full max-w-2xl mx-auto space-y-6">
       <div>
         <h2 className="text-2xl font-bold text-slate-900 tracking-tight">Platform Settings</h2>
         <p className="text-slate-500 text-sm">Manage global platform configurations</p>
