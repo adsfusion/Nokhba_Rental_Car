@@ -1,11 +1,24 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useTransition } from "react";
 import { createTenant } from "@/lib/actions/tenants";
+import { AlertCircle } from "lucide-react";
 
 export function NewTenantForm({ plans }: { plans: any[] }) {
   const [name, setName] = useState("");
   const [slug, setSlug] = useState("");
+  const [error, setError] = useState<string | null>(null);
+  const [isPending, startTransition] = useTransition();
+
+  const handleSubmit = (formData: FormData) => {
+    setError(null);
+    startTransition(async () => {
+      const result = await createTenant(formData);
+      if (result?.error) {
+        setError(result.error);
+      }
+    });
+  };
 
   const handleNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const newName = e.target.value;
@@ -32,7 +45,16 @@ export function NewTenantForm({ plans }: { plans: any[] }) {
 
   return (
     <div className="bg-white border border-slate-200 rounded-2xl p-8 shadow-sm">
-      <form action={createTenant} className="flex flex-col gap-6">
+      {error && (
+        <div className="mb-6 p-4 bg-rose-50 border border-rose-200 text-rose-700 rounded-xl flex items-start gap-3">
+          <AlertCircle className="shrink-0 mt-0.5" size={20} />
+          <div>
+            <h4 className="font-bold">Could not create tenant</h4>
+            <p className="text-sm mt-1 opacity-90">{error}</p>
+          </div>
+        </div>
+      )}
+      <form action={handleSubmit} className="flex flex-col gap-6">
         
         <div className="flex flex-col gap-2">
           <label htmlFor="name" className="text-sm font-bold text-slate-700">Agency Name</label>
@@ -88,9 +110,10 @@ export function NewTenantForm({ plans }: { plans: any[] }) {
         <div className="border-t border-slate-100 pt-6 mt-2 flex justify-end">
           <button 
             type="submit" 
-            className="bg-slate-900 text-white px-8 py-3.5 rounded-xl font-bold hover:bg-slate-800 transition-colors shadow-sm"
+            disabled={isPending}
+            className="bg-slate-900 text-white px-8 py-3.5 rounded-xl font-bold hover:bg-slate-800 transition-colors shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            Create Agency
+            {isPending ? "Creating..." : "Create Agency"}
           </button>
         </div>
 

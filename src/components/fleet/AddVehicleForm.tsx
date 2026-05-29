@@ -187,6 +187,7 @@ export default function AddVehicleForm({ tenantSlug }: { tenantSlug: string }) {
     });
   }
 
+
   return (
     <div className="max-w-[1200px] w-full mx-auto space-y-6">
 
@@ -212,7 +213,7 @@ export default function AddVehicleForm({ tenantSlug }: { tenantSlug: string }) {
         </div>
       </div>
 
-      {/* ── Form card ──────────────────────────────────────────────────────── */}
+
       <div className="bg-white border border-slate-200 rounded-3xl shadow-sm overflow-hidden">
         <div className="px-6 py-5 border-b border-slate-100 bg-gradient-to-r from-slate-50 to-white">
           <h2 className="font-bold text-slate-900 text-lg">Vehicle Details</h2>

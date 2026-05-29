@@ -175,11 +175,15 @@ export default async function TenantsPage() {
                     <td className="px-6 py-4">
                       <div className="flex flex-col">
                         <span className="font-semibold text-slate-800">
-                          {tenant.subscription_plans?.name || 'No Plan'}
+                          {Array.isArray(tenant.subscription_plans) 
+                            ? tenant.subscription_plans[0]?.name 
+                            : tenant.subscription_plans?.name || 'No Plan'}
                         </span>
                         {tenant.subscription_plans && (
                           <span className="text-xs text-slate-500 font-medium">
-                            {tenant.subscription_plans.price} {tenant.subscription_plans.currency}
+                            {Array.isArray(tenant.subscription_plans) 
+                              ? `${tenant.subscription_plans[0]?.price} ${tenant.subscription_plans[0]?.currency}`
+                              : `${tenant.subscription_plans.price} ${tenant.subscription_plans.currency}`}
                           </span>
                         )}
                       </div>

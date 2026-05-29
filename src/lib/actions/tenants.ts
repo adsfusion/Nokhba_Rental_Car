@@ -23,7 +23,7 @@ export async function createTenant(formData: FormData) {
   const subscription_plan_id = formData.get('subscription_plan_id') as string;
 
   if (!name || !slug) {
-    throw new Error('Name and Slug are required');
+    return { error: 'Name and Slug are required' };
   }
 
   const payload: Record<string, unknown> = { name, slug };
@@ -37,7 +37,7 @@ export async function createTenant(formData: FormData) {
       .single();
 
     if (planError || !plan) {
-      throw new Error('Selected subscription plan not found.');
+      return { error: 'Selected subscription plan not found.' };
     }
 
     const durationDays: number = plan.duration_days ?? 30;
@@ -65,7 +65,7 @@ export async function createTenant(formData: FormData) {
 
   if (error) {
     console.error('🔥 Error creating tenant:', error);
-    throw new Error(error.message);
+    return { error: error.message || 'Failed to create tenant in database' };
   }
 
   revalidatePath('/saas-admin/tenants');
