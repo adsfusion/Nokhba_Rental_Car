@@ -251,8 +251,8 @@ export function PaymentProofForm({
               <div className="w-14 h-14 rounded-2xl bg-slate-100 group-hover:bg-slate-900 transition-colors flex items-center justify-center mb-4">
                 <ImagePlus size={26} className="text-slate-400 group-hover:text-white transition-colors" />
               </div>
-              <p className="font-bold text-slate-900 mb-1">Click to upload receipt</p>
-              <p className="text-sm text-slate-500">JPG, PNG or WEBP · Max 5MB</p>
+              <p className="font-bold text-slate-900 mb-1 w-full">Click to upload receipt</p>
+              <p className="text-sm text-slate-500 w-full">JPG, PNG or WEBP · Max 5MB</p>
             </button>
           )}
         </div>

@@ -72,17 +72,17 @@ export default async function OverviewDashboard() {
       {/* Main Content Grid */}
       <section className="grid grid-cols-1 lg:grid-cols-12 gap-6">
         {/* Performance Placeholder */}
-        <div className="lg:col-span-8 bg-white border border-slate-200 rounded-2xl p-6 shadow-sm min-h-[400px] flex flex-col items-center justify-center text-center">
+        <div className="lg:col-span-8 bg-white border border-slate-200 rounded-2xl p-6 shadow-sm min-h-[400px] flex flex-col items-center justify-center text-center w-full">
           <TrendingUp className="text-slate-300 mb-4" size={48} />
-          <h3 className="font-bold text-lg text-slate-900 mb-1">Revenue Analytics</h3>
-          <p className="text-slate-500 font-medium">Chart integration pending database aggregation.</p>
+          <h3 className="font-bold text-lg text-slate-900 mb-1 w-full">Revenue Analytics</h3>
+          <p className="text-slate-500 font-medium w-full">Chart integration pending database aggregation.</p>
         </div>
         
         {/* Analytics Sidebar Placeholder */}
-        <div className="lg:col-span-4 bg-white border border-slate-200 rounded-2xl p-6 shadow-sm min-h-[400px] flex flex-col items-center justify-center text-center">
+        <div className="lg:col-span-4 bg-white border border-slate-200 rounded-2xl p-6 shadow-sm min-h-[400px] flex flex-col items-center justify-center text-center w-full">
           <Activity className="text-slate-300 mb-4" size={48} />
-          <h3 className="font-bold text-lg text-slate-900 mb-1">Recent Alerts</h3>
-          <p className="text-slate-500 font-medium">System event stream pending.</p>
+          <h3 className="font-bold text-lg text-slate-900 mb-1 w-full">Recent Alerts</h3>
+          <p className="text-slate-500 font-medium w-full">System event stream pending.</p>
         </div>
       </section>
     </div>

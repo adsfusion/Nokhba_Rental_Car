@@ -52,16 +52,16 @@ export function SubscriptionGate({ status, tenantSlug, tenantName, rejectionReas
         {/* Glow Effect */}
         <div className={`absolute top-0 left-1/2 -translate-x-1/2 w-3/4 h-1/2 blur-3xl rounded-full pointer-events-none ${content.glowColor.split(' ')[0]}`} />
 
-        <div className="relative z-10 flex flex-col items-center text-center">
+        <div className="relative z-10 flex flex-col items-center text-center w-full">
           <div className={`w-16 h-16 rounded-2xl flex items-center justify-center mb-6 border ${content.iconContainer}`}>
             {content.icon}
           </div>
           
-          <h1 className="text-2xl font-black text-white tracking-tight mb-3">
+          <h1 className="text-2xl font-black text-white tracking-tight mb-3 w-full">
             {content.title}
           </h1>
           
-          <p className="text-slate-400 font-medium leading-relaxed mb-8">
+          <p className="text-slate-400 font-medium leading-relaxed mb-8 w-full">
             {content.description}
           </p>
 

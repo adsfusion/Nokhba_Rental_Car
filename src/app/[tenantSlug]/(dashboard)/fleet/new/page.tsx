@@ -69,7 +69,7 @@ export default async function NewVehiclePage({
             </div>
 
             {/* Heading */}
-            <div className="space-y-2 max-w-lg">
+            <div className="space-y-2 w-full max-w-lg">
               <h1 className="text-3xl font-black text-slate-900 tracking-tight">
                 Fleet Limit Reached
               </h1>

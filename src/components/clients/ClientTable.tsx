@@ -39,12 +39,12 @@ export function ClientTable({ clients }: Props) {
           </div>
 
           {clients.length === 0 ? (
-            <div className="p-12 flex flex-col items-center justify-center text-center">
+            <div className="p-12 flex flex-col items-center justify-center text-center w-full max-w-md mx-auto">
               <div className="w-16 h-16 bg-slate-50 rounded-2xl flex items-center justify-center text-slate-300 mb-4">
                 <Users size={32} />
               </div>
-              <h4 className="font-bold text-slate-900 mb-1">No clients yet</h4>
-              <p className="text-slate-500 text-sm max-w-xs">
+              <h4 className="font-bold text-slate-900 mb-1 w-full">No clients yet</h4>
+              <p className="text-slate-500 text-sm w-full">
                 Add your first client to start building your rental registry.
               </p>
             </div>

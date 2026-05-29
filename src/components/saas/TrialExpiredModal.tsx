@@ -9,16 +9,16 @@ export function TrialExpiredModal({ tenantName }: { tenantName: string }) {
         {/* Glow Effect */}
         <div className="absolute top-0 left-1/2 -translate-x-1/2 w-3/4 h-1/2 bg-amber-500/10 blur-3xl rounded-full pointer-events-none" />
 
-        <div className="relative z-10 flex flex-col items-center">
+        <div className="relative z-10 flex flex-col items-center w-full">
           <div className="w-16 h-16 bg-amber-500/20 text-amber-500 rounded-2xl flex items-center justify-center mb-6 border border-amber-500/30">
             <AlertTriangle size={32} />
           </div>
           
-          <h1 className="text-2xl font-black text-white tracking-tight mb-3">
+          <h1 className="text-2xl font-black text-white tracking-tight mb-3 w-full">
             Subscription Expired
           </h1>
           
-          <p className="text-slate-400 font-medium leading-relaxed mb-8">
+          <p className="text-slate-400 font-medium leading-relaxed mb-8 w-full">
             The subscription or trial period for <strong className="text-white">{tenantName}</strong> has ended. Please upgrade your plan or contact the SAAS administrator to restore access to your dashboard.
           </p>
 

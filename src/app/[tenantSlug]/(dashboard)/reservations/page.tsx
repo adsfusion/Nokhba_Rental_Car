@@ -30,12 +30,12 @@ export default async function ReservationsPage({
 
       {/* Conditionally Render Empty State or Reservations Table */}
       {reservations.length === 0 ? (
-        <div className="border border-slate-200 border-dashed rounded-3xl p-16 flex flex-col items-center justify-center text-center bg-white shadow-sm">
+        <div className="border border-slate-200 border-dashed rounded-3xl p-16 flex flex-col items-center justify-center text-center bg-white shadow-sm w-full max-w-md mx-auto">
           <div className="w-16 h-16 bg-slate-50 rounded-2xl border border-slate-100 flex items-center justify-center mb-6">
             <Calendar size={28} className="text-slate-500" />
           </div>
-          <h3 className="text-lg font-bold text-slate-900 mb-2">No reservations found</h3>
-          <p className="text-slate-500 max-w-[360px] mx-auto text-sm leading-relaxed mb-6">
+          <h3 className="text-lg font-bold text-slate-900 mb-2 w-full">No reservations found</h3>
+          <p className="text-slate-500 w-full text-sm leading-relaxed mb-6">
             Create booking slots, block vehicle availability, and schedule client reservations.
           </p>
           <Link
