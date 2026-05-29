@@ -26,13 +26,37 @@ export async function createTenant(formData: FormData) {
     throw new Error('Name and Slug are required');
   }
 
-  const payload: any = {
-    name,
-    slug
-  };
+  const payload: Record<string, unknown> = { name, slug };
 
   if (subscription_plan_id) {
-    payload.subscription_plan_id = subscription_plan_id;
+    // ── 1. Fetch plan details ───────────────────────────────────────────────
+    const { data: plan, error: planError } = await supabase
+      .from('subscription_plans')
+      .select('duration_days, max_vehicles')
+      .eq('id', subscription_plan_id)
+      .single();
+
+    if (planError || !plan) {
+      throw new Error('Selected subscription plan not found.');
+    }
+
+    const durationDays: number = plan.duration_days ?? 30;
+    const maxVehicles: number  = plan.max_vehicles  ?? 5;
+
+    // ── 2. Compute end date — EXACT millisecond arithmetic ──────────────────
+    // Formula: Date.now() + duration_days × 24h × 60m × 60s × 1000ms
+    const subscriptionEndDate = new Date(
+      Date.now() + durationDays * 24 * 60 * 60 * 1000
+    );
+
+    // ── 3. Set status: 1-day plan = 'trialing', anything longer = 'active' ──
+    const subscriptionStatus = durationDays === 1 ? 'trialing' : 'active';
+
+    // ── 4. Build full payload ───────────────────────────────────────────────
+    payload.subscription_plan_id  = subscription_plan_id;
+    payload.subscription_end_date = subscriptionEndDate.toISOString();
+    payload.subscription_status   = subscriptionStatus;
+    payload.max_vehicles_limit    = maxVehicles;
   }
 
   const { error } = await supabase
@@ -40,7 +64,7 @@ export async function createTenant(formData: FormData) {
     .insert(payload);
 
   if (error) {
-    console.error("🔥 Error creating tenant:", error);
+    console.error('🔥 Error creating tenant:', error);
     throw new Error(error.message);
   }
 

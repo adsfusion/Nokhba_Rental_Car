@@ -5,6 +5,76 @@ import { redirect } from "next/navigation";
 
 export const dynamic = 'force-dynamic';
 
+// ─── Status badge helper ───────────────────────────────────────────────────────
+// Computes the badge label + Tailwind classes for every subscription state.
+// Trial tenants also show the remaining time computed server-side.
+
+type SubscriptionStatus = 'trialing' | 'pending' | 'active' | 'expired' | 'rejected';
+
+function getStatusBadge(status: SubscriptionStatus, endDate: string | null) {
+  const base = 'inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-bold border tracking-wide';
+
+  switch (status) {
+    case 'trialing': {
+      const remaining = endDate ? getRemainingTime(endDate) : null;
+      const label = remaining ? `Trial · ${remaining}` : 'Trial';
+      return {
+        className: `${base} bg-amber-500/15 text-amber-400 border-amber-500/30`,
+        label,
+        dot: '⏳',
+      };
+    }
+    case 'active':
+      return {
+        className: `${base} bg-emerald-500/15 text-emerald-400 border-emerald-500/30`,
+        label: 'Active',
+        dot: '●',
+      };
+    case 'pending':
+      return {
+        className: `${base} bg-blue-500/15 text-blue-400 border-blue-500/30`,
+        label: 'Pending Review',
+        dot: '○',
+      };
+    case 'expired':
+      return {
+        className: `${base} bg-red-500/15 text-red-400 border-red-500/30`,
+        label: 'Expired',
+        dot: '✕',
+      };
+    case 'rejected':
+      return {
+        className: `${base} bg-rose-500/15 text-rose-400 border-rose-500/30`,
+        label: 'Rejected',
+        dot: '✕',
+      };
+    default:
+      return {
+        className: `${base} bg-slate-500/15 text-slate-400 border-slate-500/30`,
+        label: String(status),
+        dot: '●',
+      };
+  }
+}
+
+// Returns "18h 22m", "2d 5h", or "Expired" — computed purely server-side
+function getRemainingTime(endDateStr: string): string {
+  const endDate = new Date(endDateStr);
+  const diffMs  = endDate.getTime() - Date.now();
+
+  if (diffMs <= 0) return 'Expired';
+
+  const totalMinutes = Math.floor(diffMs / (1000 * 60));
+  const days    = Math.floor(totalMinutes / (60 * 24));
+  const hours   = Math.floor((totalMinutes % (60 * 24)) / 60);
+  const minutes = totalMinutes % 60;
+
+  if (days > 0)  return `${days}d ${hours}h left`;
+  if (hours > 0) return `${hours}h ${minutes}m left`;
+  return `${minutes}m left`;
+}
+
+// ─── Page ──────────────────────────────────────────────────────────────────────
 export default async function TenantsPage() {
   const supabase = await createSupabaseServerClient();
   const { data: { user } } = await supabase.auth.getUser();
@@ -27,6 +97,9 @@ export default async function TenantsPage() {
       slug,
       created_at,
       subscription_plan_id,
+      subscription_status,
+      subscription_end_date,
+      max_vehicles_limit,
       subscription_plans (
         name,
         price,
@@ -36,7 +109,7 @@ export default async function TenantsPage() {
     .order('created_at', { ascending: false });
 
   if (error) {
-    console.error("🔥 Error fetching tenants:", error);
+    console.error('🔥 Error fetching tenants:', error);
   }
 
   return (
@@ -46,8 +119,8 @@ export default async function TenantsPage() {
           <h1 className="text-3xl font-black text-slate-900 tracking-tight">Tenants</h1>
           <p className="text-slate-500 mt-1 font-medium">Manage all registered agencies on the Nokhba Platform.</p>
         </div>
-        <Link 
-          href="/saas-admin/tenants/new" 
+        <Link
+          href="/saas-admin/tenants/new"
           className="bg-slate-900 text-white px-5 py-3 rounded-xl font-semibold flex items-center gap-2 hover:bg-slate-800 transition-colors shadow-sm"
         >
           <Plus size={20} />
@@ -62,56 +135,80 @@ export default async function TenantsPage() {
               <th className="px-6 py-4">Tenant Name</th>
               <th className="px-6 py-4">Slug</th>
               <th className="px-6 py-4">Plan</th>
+              <th className="px-6 py-4">Max Vehicles</th>
               <th className="px-6 py-4">Status</th>
-              <th className="px-6 py-4">Created Date</th>
+              <th className="px-6 py-4">Created</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-100">
-            {tenants?.length === 0 ? (
+            {!tenants || tenants.length === 0 ? (
               <tr>
-                <td colSpan={5} className="px-6 py-8 text-center text-slate-500">
+                <td colSpan={6} className="px-6 py-8 text-center text-slate-500">
                   No tenants found. Create one to get started.
                 </td>
               </tr>
             ) : (
-              tenants?.map((tenant: any) => (
-                <tr key={tenant.id} className="hover:bg-slate-50 transition-colors">
-                  <td className="px-6 py-4">
-                    <Link href={`/saas-admin/tenants/${tenant.id}`} className="font-bold text-slate-900 hover:text-blue-600 transition-colors">
-                      {tenant.name}
-                    </Link>
-                  </td>
-                  <td className="px-6 py-4 text-slate-600 font-mono text-sm">
-                    {tenant.slug}
-                  </td>
-                  <td className="px-6 py-4">
-                    <div className="flex flex-col">
-                      <span className="font-semibold text-slate-800">
-                        {tenant.subscription_plans?.name || 'No Plan'}
-                      </span>
-                      {tenant.subscription_plans && (
-                        <span className="text-xs text-slate-500 font-medium">
-                          {tenant.subscription_plans.price} {tenant.subscription_plans.currency}
+              tenants.map((tenant: any) => {
+                const badge = getStatusBadge(
+                  (tenant.subscription_status as SubscriptionStatus) ?? 'trialing',
+                  tenant.subscription_end_date ?? null,
+                );
+
+                return (
+                  <tr key={tenant.id} className="hover:bg-slate-50 transition-colors">
+                    {/* Name */}
+                    <td className="px-6 py-4">
+                      <Link
+                        href={`/saas-admin/tenants/${tenant.id}`}
+                        className="font-bold text-slate-900 hover:text-blue-600 transition-colors"
+                      >
+                        {tenant.name}
+                      </Link>
+                    </td>
+
+                    {/* Slug */}
+                    <td className="px-6 py-4 text-slate-600 font-mono text-sm">
+                      {tenant.slug}
+                    </td>
+
+                    {/* Plan */}
+                    <td className="px-6 py-4">
+                      <div className="flex flex-col">
+                        <span className="font-semibold text-slate-800">
+                          {tenant.subscription_plans?.name || 'No Plan'}
                         </span>
-                      )}
-                    </div>
-                  </td>
-                  <td className="px-6 py-4">
-                    <span className={`inline-flex items-center px-2.5 py-1 rounded-md text-xs font-bold border ${
-                      tenant.status?.toLowerCase() === 'active' 
-                        ? 'bg-emerald-50 text-emerald-700 border-emerald-200' 
-                        : 'bg-slate-100 text-slate-700 border-slate-200'
-                    }`}>
-                      {tenant.status || 'Active'}
-                    </span>
-                  </td>
-                  <td className="px-6 py-4 text-slate-500 text-sm font-medium">
-                    {new Date(tenant.created_at).toLocaleDateString('en-US', {
-                      year: 'numeric', month: 'short', day: 'numeric'
-                    })}
-                  </td>
-                </tr>
-              ))
+                        {tenant.subscription_plans && (
+                          <span className="text-xs text-slate-500 font-medium">
+                            {tenant.subscription_plans.price} {tenant.subscription_plans.currency}
+                          </span>
+                        )}
+                      </div>
+                    </td>
+
+                    {/* Max Vehicles */}
+                    <td className="px-6 py-4">
+                      <span className="inline-flex items-center justify-center w-8 h-8 rounded-lg bg-slate-100 text-slate-700 font-bold text-sm border border-slate-200">
+                        {tenant.max_vehicles_limit ?? '—'}
+                      </span>
+                    </td>
+
+                    {/* Status Badge */}
+                    <td className="px-6 py-4">
+                      <span className={badge.className}>
+                        <span className="text-[10px] leading-none">{badge.dot}</span>
+                        {badge.label}
+                      </span>
+                    </td>
+
+                    {/* Created Date */}
+                    <td className="px-6 py-4 text-slate-500 text-sm font-medium">
+                      {new Date(tenant.created_at).toLocaleDateString('en-US', {
+                        year: 'numeric', month: 'short', day: 'numeric',
+                      })}
+                    </td>
+                  </tr>
+                );
+              })
             )}
           </tbody>
         </table>
