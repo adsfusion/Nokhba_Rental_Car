@@ -8,7 +8,8 @@ import {
   CreditCard,
   Settings,
   LogOut,
-  Car
+  Car,
+  Banknote
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { logout } from '@/lib/actions/auth';
@@ -29,6 +30,7 @@ export function SaasSidebar() {
     { title: 'Overview', icon: LayoutDashboard, href: `/saas-admin/overview` },
     { title: 'Tenants', icon: Users, href: `/saas-admin/tenants` },
     { title: 'Subscription Plans', icon: CreditCard, href: `/saas-admin/subscriptions` },
+    { title: 'Payment Reviews', icon: Banknote, href: `/saas-admin/subscriptions/payments` },
     { title: 'Platform Settings', icon: Settings, href: `/saas-admin/settings` },
   ];
 
