@@ -9,6 +9,7 @@ import { SignLinkPopover } from './SignLinkPopover';
 import { ProcessReturnModal } from './ProcessReturnModal';
 import { deleteContract, type ContractWithDetails } from '@/lib/actions/contracts';
 import { useNotifications } from '@/components/layout/NotificationProvider';
+import { EmptyState } from '@/components/ui/EmptyState';
 
 const STATUS_CONFIG: Record<string, { label: string; className: string }> = {
   draft:             { label: 'Draft',             className: 'bg-slate-50 border-slate-200 text-slate-600' },
@@ -101,15 +102,12 @@ export function ContractList({ initialContracts }: Props) {
           </div>
 
           {initialContracts.length === 0 ? (
-            <div className="p-12 flex flex-col items-center justify-center text-center w-full max-w-md mx-auto">
-              <div className="w-16 h-16 bg-slate-50 rounded-2xl flex items-center justify-center text-slate-300 mb-4">
-                <FileText size={32} />
-              </div>
-              <h4 className="font-bold text-slate-900 mb-1 w-full">No contracts found</h4>
-              <p className="text-slate-500 text-sm w-full">
-                You haven&apos;t generated any contracts yet. Click the button above to start your first one.
-              </p>
-            </div>
+            <EmptyState
+              variant="inline"
+              icon={<FileText size={28} />}
+              title="No contracts found"
+              description="You haven't generated any contracts yet. Click the button above to start your first one."
+            />
           ) : (
             <div className="divide-y divide-slate-100">
               {initialContracts.map((contract) => {

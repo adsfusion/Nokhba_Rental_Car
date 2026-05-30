@@ -1,4 +1,5 @@
 import { Settings } from 'lucide-react';
+import { EmptyState } from '@/components/ui/EmptyState';
 
 export default function SettingsPage() {
   return (
@@ -8,15 +9,13 @@ export default function SettingsPage() {
         <p className="text-slate-500 text-sm">Manage your agency preferences and account settings.</p>
       </div>
 
-      <div className="min-h-[60vh] flex flex-col items-center justify-center p-12 text-center text-slate-400 bg-white border border-slate-200 rounded-3xl border-dashed">
-        <div className="w-20 h-20 bg-slate-50 rounded-3xl flex items-center justify-center mb-6 text-slate-300">
-          <Settings size={40} />
-        </div>
-        <h3 className="text-xl font-bold text-slate-900 mb-2 uppercase tracking-wide">Settings</h3>
-        <p className="text-sm max-w-xs">
-          This module is currently under development as part of the Phase 5 roadmap.
-        </p>
-      </div>
+      <EmptyState
+        variant="dashed"
+        icon={<Settings size={28} />}
+        title="Settings — Coming Soon"
+        description="This module is currently under development as part of the Phase 5 roadmap."
+        className="min-h-[60vh]"
+      />
     </div>
   );
 }

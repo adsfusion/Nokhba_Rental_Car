@@ -41,6 +41,7 @@ import SignatureCanvas from 'react-signature-canvas';
 import { QRCodeCanvas } from 'qrcode.react';
 import jsPDF from 'jspdf';
 import { cn } from './lib/utils';
+import { EmptyState } from './components/ui/EmptyState';
 
 // --- Types ---
 type Role = 'saas_admin' | 'tenant' | 'client';
@@ -1804,13 +1805,12 @@ const ContractsView = () => {
             </div>
             
             {contracts.length === 0 ? (
-              <div className="p-12 flex flex-col items-center justify-center text-center">
-                <div className="w-16 h-16 bg-slate-50 rounded-2xl flex items-center justify-center text-slate-300 mb-4">
-                  <FileText size={32} />
-                </div>
-                <h4 className="font-bold text-slate-900 mb-1">No contracts found</h4>
-                <p className="text-slate-500 text-sm max-w-xs">You haven't generated any contracts yet. Click the button above to start your first one.</p>
-              </div>
+              <EmptyState
+                variant="inline"
+                icon={<FileText size={28} />}
+                title="No contracts found"
+                description="You haven't generated any contracts yet. Click the button above to start your first one."
+              />
             ) : (
               <div className="divide-y divide-slate-100">
                 {contracts.map(contract => (
@@ -3481,13 +3481,13 @@ const MainApp = () => {
                 {currentView === View.CONTRACTS && <ContractsView />}
                 
                 {currentView !== View.DASHBOARD && currentView !== View.SAAS_DASHBOARD && currentView !== View.SAAS_AGENCIES && currentView !== View.SAAS_PACKAGES && currentView !== View.CLIENT_RENTALS && currentView !== View.FLEET && currentView !== View.CONTRACTS && (
-                  <div className="min-h-[60vh] flex flex-col items-center justify-center p-12 text-center text-slate-400 bg-surface-container-lowest border border-slate-200 rounded-3xl border-dashed">
-                    <div className="w-20 h-20 bg-slate-50 rounded-3xl flex items-center justify-center mb-6 text-slate-300">
-                       {currentView === View.CLIENTS ? <Users size={40} /> : <Settings size={40} />}
-                    </div>
-                    <h3 className="text-xl font-bold text-slate-900 mb-2 uppercase tracking-wide">{currentView}</h3>
-                    <p className="text-sm max-w-xs">This module is currently under development as part of the Phase 4/5 roadmap.</p>
-                  </div>
+                  <EmptyState
+                    variant="dashed"
+                    icon={currentView === View.CLIENTS ? <Users size={28} /> : <Settings size={28} />}
+                    title={String(currentView)}
+                    description="This module is currently under development as part of the Phase 4/5 roadmap."
+                    className="min-h-[60vh]"
+                  />
                 )}
               </motion.div>
             </AnimatePresence>

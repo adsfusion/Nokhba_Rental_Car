@@ -1,6 +1,7 @@
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { Users, CreditCard, TrendingUp, Activity } from "lucide-react";
 import { redirect } from "next/navigation";
+import { EmptyState } from "@/components/ui/EmptyState";
 
 export const dynamic = 'force-dynamic';
 
@@ -68,21 +69,29 @@ export default async function OverviewDashboard() {
           </div>
         ))}
       </section>
-      
+
       {/* Main Content Grid */}
       <section className="grid grid-cols-1 lg:grid-cols-12 gap-6">
         {/* Performance Placeholder */}
-        <div className="lg:col-span-8 bg-white border border-slate-200 rounded-2xl p-6 shadow-sm min-h-[400px] flex flex-col items-center justify-center text-center w-full">
-          <TrendingUp className="text-slate-300 mb-4" size={48} />
-          <h3 className="font-bold text-lg text-slate-900 mb-1 w-full">Revenue Analytics</h3>
-          <p className="text-slate-500 font-medium w-full">Chart integration pending database aggregation.</p>
+        <div className="lg:col-span-8 bg-white border border-slate-200 rounded-2xl shadow-sm min-h-[400px] overflow-hidden">
+          <EmptyState
+            variant="inline"
+            icon={<TrendingUp size={28} />}
+            title="Revenue Analytics"
+            description="Chart integration pending database aggregation."
+            className="min-h-[400px]"
+          />
         </div>
-        
+
         {/* Analytics Sidebar Placeholder */}
-        <div className="lg:col-span-4 bg-white border border-slate-200 rounded-2xl p-6 shadow-sm min-h-[400px] flex flex-col items-center justify-center text-center w-full">
-          <Activity className="text-slate-300 mb-4" size={48} />
-          <h3 className="font-bold text-lg text-slate-900 mb-1 w-full">Recent Alerts</h3>
-          <p className="text-slate-500 font-medium w-full">System event stream pending.</p>
+        <div className="lg:col-span-4 bg-white border border-slate-200 rounded-2xl shadow-sm min-h-[400px] overflow-hidden">
+          <EmptyState
+            variant="inline"
+            icon={<Activity size={28} />}
+            title="Recent Alerts"
+            description="System event stream pending."
+            className="min-h-[400px]"
+          />
         </div>
       </section>
     </div>

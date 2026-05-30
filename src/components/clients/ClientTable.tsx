@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { useParams } from 'next/navigation';
 import { Plus, Users, User, Phone, IdCard, ArrowRight } from 'lucide-react';
 import type { Client } from '@/types';
+import { EmptyState } from '@/components/ui/EmptyState';
 
 type Props = { clients: Client[] };
 
@@ -39,15 +40,12 @@ export function ClientTable({ clients }: Props) {
           </div>
 
           {clients.length === 0 ? (
-            <div className="p-12 flex flex-col items-center justify-center text-center w-full max-w-md mx-auto">
-              <div className="w-16 h-16 bg-slate-50 rounded-2xl flex items-center justify-center text-slate-300 mb-4">
-                <Users size={32} />
-              </div>
-              <h4 className="font-bold text-slate-900 mb-1 w-full">No clients yet</h4>
-              <p className="text-slate-500 text-sm w-full">
-                Add your first client to start building your rental registry.
-              </p>
-            </div>
+            <EmptyState
+              variant="inline"
+              icon={<Users size={28} />}
+              title="No clients yet"
+              description="Add your first client to start building your rental registry."
+            />
           ) : (
             <div className="divide-y divide-slate-100">
               {clients.map((client) => (

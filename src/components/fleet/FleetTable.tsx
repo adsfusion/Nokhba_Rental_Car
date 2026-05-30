@@ -7,6 +7,7 @@ import { Car, ChevronRight } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { Vehicle, Contract } from '@/types';
 import { formatCurrency } from '@/lib/utils/format';
+import { EmptyState } from '@/components/ui/EmptyState';
 
 interface FleetTableProps {
   vehicles: Vehicle[];
@@ -99,9 +100,21 @@ export default function FleetTable({ vehicles, contracts }: FleetTableProps) {
 
       {/* ── Fleet Grid ────────────────────────────────────────── */}
       {filteredVehicles.length === 0 ? (
-        <div className="rounded-2xl border border-slate-200 bg-white p-12 text-center text-slate-500 shadow-sm">
-          No vehicles found matching your criteria.
-        </div>
+        <EmptyState
+          variant="dashed"
+          icon={<Car size={28} />}
+          title="No vehicles found"
+          description="No vehicles match the selected filter. Try a different status or add a new vehicle."
+          action={
+            <Link
+              href={`${prefix}/fleet/new`}
+              className="flex items-center gap-2 px-4 py-2 border border-slate-200 text-slate-700 rounded-xl text-sm font-semibold hover:bg-slate-50 transition-colors"
+            >
+              <Car size={16} />
+              Add Vehicle
+            </Link>
+          }
+        />
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
           {filteredVehicles.map((vehicle) => {
