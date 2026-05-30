@@ -1,6 +1,7 @@
 'use server';
 
 import { createSupabaseServerClient } from '../supabase/server';
+import { createSupabaseAdminClient } from '../supabase/admin';
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 
@@ -70,4 +71,38 @@ export async function createTenant(formData: FormData) {
 
   revalidatePath('/saas-admin/tenants');
   redirect('/saas-admin/tenants');
+}
+
+export async function deleteTenant(id: string) {
+  const supabase = await createSupabaseServerClient();
+  const { data: { user } } = await supabase.auth.getUser();
+
+  if (!user) return { error: 'Unauthorized' };
+
+  const { data: profile } = await supabase
+    .from('profiles')
+    .select('role')
+    .eq('id', user.id)
+    .single();
+
+  if (profile?.role !== 'super_admin') return { error: 'Forbidden' };
+
+  // Use Admin Client to bypass RLS for deletion operations
+  const admin = createSupabaseAdminClient();
+
+  // Cascade delete dependent records first
+  const { error: ppErr } = await admin.from('payment_proofs').delete().eq('tenant_id', id);
+  if (ppErr) return { error: `Failed to delete payment proofs: ${ppErr.message}` };
+
+  const { error: profErr } = await admin.from('profiles').delete().eq('tenant_id', id);
+  if (profErr) return { error: `Failed to delete profiles: ${profErr.message}` };
+
+  const { error } = await admin.from('tenants').delete().eq('id', id);
+  if (error) {
+    if (error.code === '23503') return { error: 'Cannot delete this tenant because it has linked records in other tables.' };
+    return { error: error.message };
+  }
+
+  revalidatePath('/saas-admin/tenants');
+  return { success: true };
 }

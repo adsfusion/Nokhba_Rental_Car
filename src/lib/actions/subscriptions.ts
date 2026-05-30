@@ -49,3 +49,24 @@ export async function createSubscriptionPlan(formData: FormData) {
   revalidatePath('/saas-admin/subscriptions');
   redirect('/saas-admin/subscriptions');
 }
+
+export async function deleteSubscriptionPlan(id: string) {
+  const supabase = await createSupabaseServerClient();
+  const { data: { user } } = await supabase.auth.getUser();
+
+  if (!user) return { error: 'Unauthorized' };
+
+  const { data: profile } = await supabase
+    .from('profiles')
+    .select('role')
+    .eq('id', user.id)
+    .single();
+
+  if (profile?.role !== 'super_admin') return { error: 'Forbidden' };
+
+  const { error } = await supabase.from('subscription_plans').delete().eq('id', id);
+  if (error) return { error: error.message };
+
+  revalidatePath('/saas-admin/subscriptions');
+  return { success: true };
+}

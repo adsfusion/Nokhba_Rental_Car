@@ -2,6 +2,8 @@ import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { Plus } from "lucide-react";
 import Link from "next/link";
 import { redirect } from "next/navigation";
+import { DeleteButton, EditButton } from "@/components/saas-admin/ActionButtons";
+import { deleteSubscriptionPlan } from "@/lib/actions/subscriptions";
 
 export const dynamic = 'force-dynamic';
 
@@ -53,12 +55,13 @@ export default async function SubscriptionsPage() {
               <th className="px-6 py-4">Billing Period</th>
               <th className="px-6 py-4">Max Vehicles</th>
               <th className="px-6 py-4">Status</th>
+              <th className="px-6 py-4 text-right">Actions</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-100">
             {plans?.length === 0 ? (
               <tr>
-                <td colSpan={5} className="px-6 py-8 text-center text-slate-500">
+                <td colSpan={6} className="px-6 py-8 text-center text-slate-500">
                   No subscription plans found. Create one to get started.
                 </td>
               </tr>
@@ -87,6 +90,12 @@ export default async function SubscriptionsPage() {
                     }`}>
                       {plan.is_active ? 'Active' : 'Inactive'}
                     </span>
+                  </td>
+                  <td className="px-6 py-4 text-right whitespace-nowrap">
+                    <div className="flex justify-end gap-2">
+                      <EditButton href={`/saas-admin/subscriptions/${plan.id}`} entityName="Plan" />
+                      <DeleteButton onDelete={deleteSubscriptionPlan.bind(null, plan.id)} entityName="Plan" />
+                    </div>
                   </td>
                 </tr>
               ))

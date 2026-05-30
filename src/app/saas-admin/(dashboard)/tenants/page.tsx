@@ -2,6 +2,8 @@ import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { Plus } from "lucide-react";
 import Link from "next/link";
 import { redirect } from "next/navigation";
+import { DeleteButton, EditButton } from "@/components/saas-admin/ActionButtons";
+import { deleteTenant } from "@/lib/actions/tenants";
 
 export const dynamic = 'force-dynamic';
 
@@ -138,12 +140,13 @@ export default async function TenantsPage() {
               <th className="px-6 py-4">Max Vehicles</th>
               <th className="px-6 py-4">Status</th>
               <th className="px-6 py-4">Created</th>
+              <th className="px-6 py-4 text-right">Actions</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-100">
             {!tenants || tenants.length === 0 ? (
               <tr>
-                <td colSpan={6} className="px-6 py-8 text-center text-slate-500">
+                <td colSpan={7} className="px-6 py-8 text-center text-slate-500">
                   No tenants found. Create one to get started.
                 </td>
               </tr>
@@ -209,6 +212,14 @@ export default async function TenantsPage() {
                       {new Date(tenant.created_at).toLocaleDateString('en-US', {
                         year: 'numeric', month: 'short', day: 'numeric',
                       })}
+                    </td>
+
+                    {/* Actions */}
+                    <td className="px-6 py-4 text-right whitespace-nowrap">
+                      <div className="flex justify-end gap-2">
+                        <EditButton href={`/saas-admin/tenants/${tenant.id}`} entityName="Tenant" />
+                        <DeleteButton onDelete={deleteTenant.bind(null, tenant.id)} entityName="Tenant" />
+                      </div>
                     </td>
                   </tr>
                 );

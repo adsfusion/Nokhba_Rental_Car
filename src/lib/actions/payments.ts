@@ -142,3 +142,24 @@ export async function rejectPayment(proofId: string, reason: string) {
   revalidatePath(`/saas-admin/subscriptions/payments/${proofId}`);
   return { success: true };
 }
+
+export async function deletePaymentProof(id: string) {
+  const supabase = await createSupabaseServerClient();
+  const { data: { user } } = await supabase.auth.getUser();
+
+  if (!user) return { error: 'Unauthorized' };
+
+  const { data: profile } = await supabase
+    .from('profiles')
+    .select('role')
+    .eq('id', user.id)
+    .single();
+
+  if (profile?.role !== 'super_admin') return { error: 'Forbidden' };
+
+  const { error } = await supabase.from('payment_proofs').delete().eq('id', id);
+  if (error) return { error: error.message };
+
+  revalidatePath('/saas-admin/subscriptions/payments');
+  return { success: true };
+}

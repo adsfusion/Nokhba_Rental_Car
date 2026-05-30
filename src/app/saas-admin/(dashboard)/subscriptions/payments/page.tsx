@@ -2,6 +2,8 @@ import { createSupabaseServerClient } from '@/lib/supabase/server';
 import { redirect } from 'next/navigation';
 import Link from 'next/link';
 import { ArrowLeft, Clock, CheckCircle2, XCircle, FileImage, ChevronRight } from 'lucide-react';
+import { DeleteButton, EditButton } from "@/components/saas-admin/ActionButtons";
+import { deletePaymentProof } from "@/lib/actions/payments";
 
 export const dynamic = 'force-dynamic';
 export const metadata = { title: 'Payment Reviews — SaaS Admin' };
@@ -81,31 +83,35 @@ function ProofRow({ proof }: { proof: any }) {
   const Icon   = cfg.icon;
 
   return (
-    <Link href={`/saas-admin/subscriptions/payments/${proof.id}`}
-      className="bg-white border border-slate-200 rounded-2xl px-6 py-5 flex items-center gap-4 shadow-sm hover:shadow-md hover:border-slate-300 transition-all group">
-      <div className="w-11 h-11 rounded-xl bg-slate-100 flex items-center justify-center shrink-0 text-slate-400">
-        <FileImage size={22} />
-      </div>
-      <div className="flex-1 min-w-0">
-        <div className="flex items-center gap-2">
-          <p className="font-bold text-slate-900 truncate">
-            {(proof.tenants as any)?.name || 'Unknown Tenant'}
-          </p>
-          <span className="text-slate-300">·</span>
-          <p className="text-sm text-slate-500 font-medium truncate">
-            {(proof.subscription_plans as any)?.name || 'Unknown Plan'}
+    <div className="bg-white border border-slate-200 rounded-2xl px-6 py-5 flex items-center gap-4 shadow-sm hover:shadow-md hover:border-slate-300 transition-all group">
+      <Link href={`/saas-admin/subscriptions/payments/${proof.id}`} className="flex-1 flex items-center gap-4 min-w-0">
+        <div className="w-11 h-11 rounded-xl bg-slate-100 flex items-center justify-center shrink-0 text-slate-400 group-hover:text-blue-500 transition-colors">
+          <FileImage size={22} />
+        </div>
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-2">
+            <p className="font-bold text-slate-900 truncate">
+              {(proof.tenants as any)?.name || 'Unknown Tenant'}
+            </p>
+            <span className="text-slate-300">·</span>
+            <p className="text-sm text-slate-500 font-medium truncate">
+              {(proof.subscription_plans as any)?.name || 'Unknown Plan'}
+            </p>
+          </div>
+          <p className="text-xs text-slate-400 font-medium mt-1">
+            {proof.amount_paid} {proof.currency} · Submitted {new Date(proof.created_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}
           </p>
         </div>
-        <p className="text-xs text-slate-400 font-medium mt-1">
-          {proof.amount_paid} {proof.currency} · Submitted {new Date(proof.created_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}
-        </p>
-      </div>
+      </Link>
       <div className="flex items-center gap-3 shrink-0">
         <span className={`inline-flex items-center gap-1.5 text-xs font-bold px-3 py-1.5 rounded-full ${cfg.cls}`}>
           <Icon size={13} /> {cfg.label}
         </span>
-        <ChevronRight size={18} className="text-slate-300 group-hover:text-slate-500 transition-colors" />
+        <div className="flex items-center border-l border-slate-200 pl-3 ml-1 gap-1">
+          <EditButton href={`/saas-admin/subscriptions/payments/${proof.id}`} entityName="Payment Proof" />
+          <DeleteButton onDelete={deletePaymentProof.bind(null, proof.id)} entityName="Payment Proof" />
+        </div>
       </div>
-    </Link>
+    </div>
   );
 }

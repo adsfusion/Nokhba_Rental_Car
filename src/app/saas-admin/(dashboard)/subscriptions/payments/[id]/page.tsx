@@ -39,6 +39,21 @@ export default async function PaymentDetailPage({
 
   const isPending = proof.status === 'pending';
 
+  let displayUrl = proof.proof_image_url;
+  if (displayUrl) {
+    let filePath = displayUrl;
+    if (filePath.includes('/object/public/payment-proofs/')) {
+      filePath = filePath.split('/object/public/payment-proofs/')[1];
+    }
+    const { data: signed } = await supabase.storage
+      .from('payment-proofs')
+      .createSignedUrl(filePath, 3600);
+      
+    if (signed?.signedUrl) {
+      displayUrl = signed.signedUrl;
+    }
+  }
+
   return (
     <div className="p-8 max-w-[960px] mx-auto w-full space-y-8">
       {/* Header */}
@@ -68,11 +83,11 @@ export default async function PaymentDetailPage({
             <h2 className="font-bold text-slate-900">Payment Proof Image</h2>
           </div>
           <div className="p-6">
-            <a href={proof.proof_image_url} target="_blank" rel="noopener noreferrer"
+            <a href={displayUrl} target="_blank" rel="noopener noreferrer"
               className="block w-full aspect-[4/3] rounded-xl overflow-hidden bg-slate-100 border border-slate-200 hover:opacity-90 transition-opacity cursor-zoom-in">
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
-                src={proof.proof_image_url}
+                src={displayUrl}
                 alt="Payment proof"
                 className="w-full h-full object-contain"
               />
