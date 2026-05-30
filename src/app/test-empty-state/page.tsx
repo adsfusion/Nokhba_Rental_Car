@@ -1,7 +1,7 @@
 import { Receipt } from 'lucide-react';
 import { EmptyState } from '@/components/ui/EmptyState';
 
-export default function InvoicesPage() {
+export default function TestPage() {
   return (
     <div className="w-full block max-w-[896px] mx-auto p-6">
       <div className="mb-8">

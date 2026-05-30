@@ -37,7 +37,7 @@ export default async function SaasAdminLayout({ children }: { children: ReactNod
               userName={profile?.full_name as string | undefined}
               userInitials={initials}
             />
-            <main className="flex-1 overflow-y-auto p-6 lg:p-8">
+            <main className="flex-1 w-full min-w-0 overflow-x-hidden overflow-y-auto p-6 lg:p-8">
               {children}
             </main>
           </div>

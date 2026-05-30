@@ -71,7 +71,7 @@ export default async function TenantLayout({ children, params }: { children: Rea
               userName={profile.full_name as string | undefined}
               userInitials={initials}
             />
-            <main className="flex-1 overflow-y-auto p-6 lg:p-8 relative">
+            <main className="flex-1 w-full min-w-0 overflow-x-hidden overflow-y-auto p-6 lg:p-8 relative">
               {isBlocked ? (
                 <SubscriptionGate status={status as 'expired' | 'trialing' | 'pending' | 'rejected'} tenantSlug={tenantSlug} tenantName={tenantName} />
               ) : (

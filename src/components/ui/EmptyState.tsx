@@ -30,10 +30,9 @@ interface EmptyStateProps {
 }
 
 const wrapperVariants: Record<string, string> = {
-  card: 'bg-white border border-slate-200 rounded-3xl p-12 shadow-sm',
-  dashed:
-    'bg-white border border-dashed border-slate-200 rounded-3xl p-16 shadow-sm',
-  inline: 'p-12',
+  card: 'bg-white border border-slate-200 rounded-3xl shadow-sm',
+  dashed: 'bg-white border border-dashed border-slate-200 rounded-3xl shadow-sm',
+  inline: '',
 };
 
 export function EmptyState({
@@ -46,9 +45,10 @@ export function EmptyState({
 }: EmptyStateProps) {
   return (
     <div
+      style={{ width: '100%', minWidth: '100%' }}
       className={[
-        /* Outer flex wrapper — centers content vertically and horizontally */
-        'flex flex-col items-center justify-center w-full',
+        /* Outer Block wrapper — Immutable 100% width, ignores all flex/grid cross-axis shrink bugs */
+        'block w-full p-8 mx-auto',
         wrapperVariants[variant],
         className,
       ]
@@ -56,18 +56,14 @@ export function EmptyState({
         .join(' ')}
     >
       {/* Icon shell */}
-      <div className="w-16 h-16 bg-slate-50 rounded-2xl border border-slate-100 flex items-center justify-center mb-6 text-slate-400 shrink-0">
+      <div className="w-16 h-16 mx-auto mb-6 bg-slate-50 rounded-2xl border border-slate-100 flex items-center justify-center text-slate-400 shrink-0">
         {icon}
       </div>
 
       {/*
-       * TEXT CONTAINER — THE CRITICAL FIX
-       * `w-full max-w-md mx-auto text-center` permanently prevents the
-       * flexbox min-content collapse bug by giving the text block an
-       * explicit, bounded width that is always honoured regardless of the
-       * parent flex algorithm.
+       * TEXT CONTAINER
        */}
-      <div className="w-full max-w-md mx-auto text-center">
+      <div style={{ display: 'block', width: '448px', margin: '0 auto', textAlign: 'center' }}>
         <h3 className="text-lg font-bold text-slate-900 mb-2">{title}</h3>
         <p className="text-sm text-slate-500 leading-relaxed">{description}</p>
 
