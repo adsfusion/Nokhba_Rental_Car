@@ -1,6 +1,7 @@
 'use server';
 
 import { createSupabaseServerClient } from '../supabase/server';
+import { createSupabaseAdminClient } from '../supabase/admin';
 import { revalidatePath } from 'next/cache';
 
 // ── submitPaymentProof ───────────────────────────────────────────────────────
@@ -157,7 +158,8 @@ export async function deletePaymentProof(id: string) {
 
   if (profile?.role !== 'super_admin') return { error: 'Forbidden' };
 
-  const { error } = await supabase.from('payment_proofs').delete().eq('id', id);
+  const admin = createSupabaseAdminClient();
+  const { error } = await admin.from('payment_proofs').delete().eq('id', id);
   if (error) return { error: error.message };
 
   revalidatePath('/saas-admin/subscriptions/payments');
