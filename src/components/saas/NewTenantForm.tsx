@@ -90,6 +90,56 @@ export function NewTenantForm({ plans }: { plans: any[] }) {
           <p className="text-xs text-slate-500 font-medium mt-1">This will be the unique identifier for the agency's dashboard URL.</p>
         </div>
 
+        <div className="grid grid-cols-2 gap-6">
+          <div className="flex flex-col gap-2">
+            <label htmlFor="email" className="text-sm font-bold text-slate-700">Admin Email</label>
+            <input 
+              type="email" 
+              id="email" 
+              name="email" 
+              required 
+              placeholder="admin@agency.com"
+              className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-slate-900 focus:border-transparent transition-all bg-slate-50 font-medium text-slate-900 placeholder:text-slate-400"
+            />
+          </div>
+
+          <div className="flex flex-col gap-2">
+            <label htmlFor="password" className="text-sm font-bold text-slate-700">Admin Password</label>
+            <input 
+              type="password" 
+              id="password" 
+              name="password" 
+              required 
+              placeholder="••••••••"
+              className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-slate-900 focus:border-transparent transition-all bg-slate-50 font-medium text-slate-900 placeholder:text-slate-400"
+            />
+          </div>
+        </div>
+
+        <div className="grid grid-cols-2 gap-6">
+          <div className="flex flex-col gap-2">
+            <label htmlFor="phone" className="text-sm font-bold text-slate-700">Phone Number</label>
+            <input 
+              type="tel" 
+              id="phone" 
+              name="phone" 
+              placeholder="+212 600 000000"
+              className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-slate-900 focus:border-transparent transition-all bg-slate-50 font-medium text-slate-900 placeholder:text-slate-400"
+            />
+          </div>
+
+          <div className="flex flex-col gap-2">
+            <label htmlFor="city" className="text-sm font-bold text-slate-700">City</label>
+            <input 
+              type="text" 
+              id="city" 
+              name="city" 
+              placeholder="e.g. Casablanca"
+              className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-slate-900 focus:border-transparent transition-all bg-slate-50 font-medium text-slate-900 placeholder:text-slate-400"
+            />
+          </div>
+        </div>
+
         <div className="flex flex-col gap-2">
           <label htmlFor="subscription_plan_id" className="text-sm font-bold text-slate-700">Subscription Plan</label>
           <select 

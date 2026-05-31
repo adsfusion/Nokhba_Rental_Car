@@ -21,13 +21,39 @@ export async function createTenant(formData: FormData) {
 
   const name = formData.get('name') as string;
   const slug = formData.get('slug') as string;
+  const email = formData.get('email') as string;
+  const password = formData.get('password') as string;
+  const phone = formData.get('phone') as string;
+  const city = formData.get('city') as string;
   const subscription_plan_id = formData.get('subscription_plan_id') as string;
 
-  if (!name || !slug) {
-    return { error: 'Name and Slug are required' };
+  if (!name || !slug || !email || !password) {
+    return { error: 'Name, Slug, Email, and Password are required' };
   }
 
-  const payload: Record<string, unknown> = { name, slug };
+  const adminAuth = createSupabaseAdminClient();
+
+  // 1. Create Auth User bypassing normal signup
+  const { data: authData, error: authError } = await adminAuth.auth.admin.createUser({
+    email,
+    password,
+    email_confirm: true,
+  });
+
+  if (authError || !authData.user) {
+    console.error('🔥 Error creating auth user:', authError);
+    return { error: authError?.message || 'Failed to create admin user' };
+  }
+
+  const authUserId = authData.user.id;
+
+  const payload: Record<string, unknown> = { 
+    name, 
+    slug,
+    email,
+    phone,
+    city
+  };
 
   if (subscription_plan_id) {
     // ── 1. Fetch plan details ───────────────────────────────────────────────
@@ -38,6 +64,7 @@ export async function createTenant(formData: FormData) {
       .single();
 
     if (planError || !plan) {
+      await adminAuth.auth.admin.deleteUser(authUserId); // cleanup
       return { error: 'Selected subscription plan not found.' };
     }
 
@@ -60,13 +87,40 @@ export async function createTenant(formData: FormData) {
     payload.max_vehicles_limit    = maxVehicles;
   }
 
-  const { error } = await supabase
+  // 2. Create Tenant Row
+  // Use admin client to ensure we can select the inserted row reliably without RLS blocking
+  const { data: tenantData, error: tenantError } = await adminAuth
     .from('tenants')
-    .insert(payload);
+    .insert(payload)
+    .select('id')
+    .single();
 
-  if (error) {
-    console.error('🔥 Error creating tenant:', error);
-    return { error: error.message || 'Failed to create tenant in database' };
+  if (tenantError || !tenantData) {
+    console.error('🔥 Error creating tenant:', tenantError);
+    await adminAuth.auth.admin.deleteUser(authUserId); // cleanup
+    return { error: tenantError?.message || 'Failed to create tenant in database' };
+  }
+
+  // 3. Update Profile Row linked to Auth ID and Tenant ID
+  // (A database trigger likely created a blank profile already, so we update it)
+  const { error: profileError } = await adminAuth
+    .from('profiles')
+    .update({
+      tenant_id: tenantData.id,
+      role: 'tenant_admin',
+      email,
+      phone,
+      full_name: name
+    })
+    .eq('id', authUserId);
+
+  if (profileError) {
+    console.error('🔥 Error creating profile:', profileError);
+    // Best effort cleanup. If profile fails, tenant might be orphaned. 
+    // Ideally use a database function for atomicity, but this works for now.
+    await adminAuth.from('tenants').delete().eq('id', tenantData.id);
+    await adminAuth.auth.admin.deleteUser(authUserId);
+    return { error: profileError.message || 'Failed to create admin profile' };
   }
 
   revalidatePath('/saas-admin/tenants');
